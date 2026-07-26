@@ -44,9 +44,11 @@
         .parcelas-container { display: none; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 12px; }
         .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
         
-        .btn { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; display: block; text-align: center; margin-top: 10px; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: filter 0.2s; }
+        .btn { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; display: block; text-align: center; margin-top: 8px; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: filter 0.2s; }
         .btn:hover { filter: brightness(1.08); }
         
+        .btn-pix { background: linear-gradient(135deg, #0284c7 0%, #0369a1); box-shadow: 0 2px 6px rgba(2,132,199,0.3); }
+
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 30px; font-weight: 600; }
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .badge-quitado { background: #10b981; color: white; }
@@ -130,9 +132,9 @@
     const SENHA_MESTRE = "1234";
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
     
-    // CHAVE PIX CONFIGURADA
     const CHAVE_PIX = "14997476508"; 
-    const NOME_BENEFICIARIO = "Empréstimos MEI";
+    const NOME_BENEFICIARIO = "Emprestimos MEI";
+    const CIDADE_BENEFICIARIO = "SAO PAULO";
 
     let dadosGlobais = { emprestimos: [], parcelas: [] };
 
@@ -150,7 +152,6 @@
 
     function formatarData(dataStr) {
         if (!dataStr) return "";
-        // Se vier no formato ISO ou com hora (ex: 2026-10-26T... ou 2026-10-26)
         let apenasData = dataStr.split("T")[0];
         let partes = apenasData.split("-");
         if (partes.length === 3) {
@@ -161,6 +162,57 @@
 
     function formatarMoedaBR(valor) {
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // Gerador de Pix Copia e Cola (Payload BR Code)
+    function gerarPayloadPix(chave, nome, cidade, valor, identificador) {
+        function formatoId(id, valorCampo) {
+            let tamanho = String(valorCampo.length).padStart(2, '0');
+            return id + tamanho + valorCampo;
+        }
+
+        let gui = formatoId('00', 'br.gov.bcb.pix');
+        let chavePixField = formatoId('01', chave);
+        let merchantAccount = formatoId('26', gui + chavePixField);
+        
+        let mcc = formatoId('52', '0000');
+        let moeda = formatoId('53', '986');
+        let valorStr = formatoId('54', Number(valor).toFixed(2));
+        let pais = formatoId('58', 'BR');
+        let beneficiario = formatoId('59', nome.substring(0, 25));
+        let cidadeBeneficiario = formatoId('60', cidade.substring(0, 15));
+        
+        let txId = identificador ? identificador.substring(0, 25) : '***';
+        let additionalData = formatoId('62', formatoId('05', txId));
+
+        let payloadSemCrc = formatoId('00', '01') + merchantAccount + mcc + moeda + valorStr + pais + beneficiario + cidadeBeneficiario + additionalData + '6304';
+        
+        // Cálculo CRC16
+        let polinomio = 0x1021;
+        let resultado = 0xFFFF;
+        for (let i = 0; i < payloadSemCrc.length; i++) {
+            resultado ^= (payloadSemCrc.charCodeAt(i) << 8);
+            for (let j = 0; j < 8; j++) {
+                if ((resultado & 0x8000) !== 0) {
+                    resultado = ((resultado << 1) ^ polinomio) & 0xFFFF;
+                } else {
+                    resultado = (resultado << 1) & 0xFFFF;
+                }
+            }
+        }
+        let crc16 = resultado.toString(16).toUpperCase().padStart(4, '0');
+        return payloadSemCrc + crc16;
+    }
+
+    // Função para copiar o Pix para a área de transferência
+    function copiarPixCopiaECola(chave, nome, cidade, valor, idParcela) {
+        let payload = gerarPayloadPix(chave, nome, cidade, valor, idParcela);
+        
+        navigator.clipboard.writeText(payload).then(() => {
+            alert("✅ Código Pix Copia e Cola copiado com sucesso!\n\nCole no aplicativo do seu banco para receber.");
+        }).catch(err => {
+            prompt("Copie o código abaixo:", payload);
+        });
     }
 
     async function carregarPainel() {
@@ -221,7 +273,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
             return 0;
         });
 
@@ -252,6 +304,7 @@
                                `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
 
                 let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+                let identificadorUnico = `${emp.id}_${parc.numeroParcela}`.replace(/[^a-zA-Z0-9]/g, '');
 
                 htmlParcelas += `
                     <div class="parcela-item">
@@ -259,6 +312,11 @@
                         <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
                         <div class="card-row"><span>Valor Diário:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
                         <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
+                        
+                        <button class="btn btn-pix" onclick="copiarPixCopiaECola('${CHAVE_PIX}', '${NOME_BENEFICIARIO}', '${CIDADE_BENEFICIARIO}', ${parc.valor}, '${identificadorUnico}')">
+                            📋 Copiar Pix Copia e Cola (R$ ${parc.valor})
+                        </button>
+                        
                         <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
                     </div>
                 `;
@@ -280,7 +338,7 @@
             `;
 
             card.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') return;
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
                 let containerParcelas = card.querySelector('.parcelas-container');
                 containerParcelas.style.display = containerParcelas.style.display === 'block' ? 'none' : 'block';
             });
