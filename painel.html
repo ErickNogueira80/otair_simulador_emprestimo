@@ -54,7 +54,6 @@
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 30px; font-weight: 600; }
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .badge-quitado { background: #10b981; color: white; }
-        .badge-pendente { background: #ef4444; color: white; }
         .hint { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 15px; font-style: italic; }
         .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
     </style>
@@ -215,8 +214,8 @@
         });
     }
 
-    async function aprovarEmprestimo(idEmprestimo, nomeCliente, telefoneCliente, valorTotal) {
-        if (!confirm(`Deseja APROVAR o empréstimo para ${nomeCliente}? As parcelas diárias serão geradas automaticamente.`)) return;
+    async function aprovarEmprestimo(idEmprestimo, nomeCliente, telefoneCliente, chavePixCliente, valorEmprestado) {
+        if (!confirm(`Deseja APROVAR o empréstimo para ${nomeCliente}?\nValor a depositar via Pix: ${formatarMoedaBR(valorEmprestado)}\nChave Pix: ${chavePixCliente}`)) return;
 
         try {
             let urlAprovar = `${URL_APPS_SCRIPT}?acao=aprovar&idEmprestimo=${idEmprestimo}`;
@@ -224,11 +223,10 @@
 
             alert("✅ Empréstimo aprovado com sucesso!");
 
-            // Pergunta se deseja enviar mensagem de aprovação no WhatsApp do cliente
-            let msgAprovado = `Olá, *${nomeClient}*! Seu empréstimo no valor total de *${formatarMoedaBR(valorTotal)}* foi *APROVADO* com sucesso! 🎉\n\nJá pode consultar suas parcelas e realizar os pagamentos através do nosso Portal do Cliente.`;
+            let msgAprovado = `Olá, *${nomeCliente}*! Seu empréstimo no valor de *${formatarMoedaBR(valorEmprestado)}* foi *APROVADO*! 🎉\n\nO depósito via Pix foi enviado para a sua chave: \`${chavePixCliente}\`.\n\nJá pode consultar suas parcelas e realizar os pagamentos através do nosso Portal do Cliente.`;
             let telLimpo = telefoneCliente ? telefoneCliente.replace(/\D/g,'') : '';
             if (telLimpo) {
-                if (confirm("Deseja enviar a mensagem de crédito aprovado para o WhatsApp do cliente agora?")) {
+                if (confirm("Deseja enviar a mensagem de crédito aprovado e depositado para o WhatsApp do cliente agora?")) {
                     window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msgAprovado)}`, '_blank');
                 }
             }
@@ -266,7 +264,7 @@
 
             let totalEmp = emprestimos.length;
             let clientesUnicos = new Set(emprestimos.map(e => e.telefone || e.nome)).size;
-            let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorTotal || 0), 0);
+            let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorEmprestado || 0), 0);
             
             let valorTotalAberto = parcelas
                 .filter(p => p.status.toLowerCase() === 'pendente')
@@ -316,7 +314,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
             return 0;
         });
 
@@ -340,15 +338,16 @@
             let htmlConteudoCard = '';
 
             if (isPendenteAprovacao) {
-                let msgRecusa = `Olá, *${emp.nome}*.\n\nAnalisamos sua solicitação de empréstimo no valor de *${formatarMoedaBR(emp.valorTotal)}*, mas infelizmente não conseguimos aprovar a liberação do crédito neste momento. Agradecemos o contato!`;
+                let msgRecusa = `Olá, *${emp.nome}*.\n\nAnalisamos sua solicitação de empréstimo no valor de *${formatarMoedaBR(emp.valorEmprestado)}*, mas infelizmente não conseguimos aprovar a liberação do crédito neste momento. Agradecemos o contato!`;
                 let linkRecusar = `https://wa.me/55${emp.telefone ? emp.telefone.replace(/\D/g,'') : ''}?text=${encodeURIComponent(msgRecusa)}`;
 
                 htmlConteudoCard = `
-                    <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center;">
-                        <strong style="color: #dc2626;">Aguardando Aprovação do Gestor</strong>
+                    <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong style="color: #dc2626; display: block; text-align: center; margin-bottom: 5px;">Aguardando Aprovação</strong>
+                        <div class="card-row" style="margin-bottom: 4px;"><span>Chave Pix p/ Depósito:</span> <strong style="color: #0284c7;">${emp.chavePix || 'Não informada'}</strong></div>
                     </div>
-                    <button class="btn btn-aprovar" onclick="aprovarEmprestimo('${emp.id}', '${emp.nome}', '${emp.telefone}', ${emp.valorTotal})">
-                        ✅ Aprovar Empréstimo e Gerar Parcelas
+                    <button class="btn btn-aprovar" onclick="aprovarEmprestimo('${emp.id}', '${emp.nome}', '${emp.telefone}', '${emp.chavePix}', ${emp.valorEmprestado})">
+                        ✅ Aprovar e Enviar Pix ao Cliente
                     </button>
                     <a href="${linkRecusar}" target="_blank" class="btn" style="background: #ef4444; margin-top: 6px;">
                         ❌ Recusar e Avisar via WhatsApp
@@ -397,6 +396,7 @@
                     : '<span class="badge">Em Aberto</span>';
 
                 htmlConteudoCard = `
+                    <div class="card-row"><span>Chave Pix:</span> <span>${emp.chavePix || '-'}</span></div>
                     <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
                     <div class="card-row"><span>Prazo:</span> <span>${emp.qtdParcelas} Dias (Toque para ver parcelas)</span></div>
                     <div class="parcelas-container">
@@ -409,7 +409,8 @@
                 <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
                 <div class="card-row"><span>WhatsApp:</span> <span>${emp.telefone || 'Não informado'}</span></div>
                 <div class="card-row"><span>Data do Pedido:</span> <span>${formatarData(emp.data)}</span></div>
-                <div class="card-row"><span>Valor Total:</span> <span>${formatarMoedaBR(emp.valorTotal)}</span></div>
+                <div class="card-row"><span>Valor Emprestado:</span> <strong>${formatarMoedaBR(emp.valorEmprestado)}</strong></div>
+                <div class="card-row"><span>Total com Juros:</span> <span>${formatarMoedaBR(emp.valorTotal)}</span></div>
                 ${htmlConteudoCard}
             `;
 
