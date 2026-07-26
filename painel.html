@@ -97,8 +97,8 @@
 
             <div class="filter-section">
                 <div class="filter-group">
-                    <label for="filtroBusca">Pesquisar Cliente:</label>
-                    <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
+                    <label for="filtroBusca">Pesquisar Cliente ou Telefone:</label>
+                    <input type="text" id="filtroBusca" placeholder="Digite nome ou telefone..." oninput="renderizarPainel()">
                 </div>
                 <div class="filter-row" style="margin-top: 10px;">
                     <div class="filter-group">
@@ -218,12 +218,10 @@
 
         try {
             let urlBaixa = `${URL_APPS_SCRIPT}?acao=darBaixa&idEmprestimo=${idEmprestimo}&numeroParcela=${encodeURIComponent(numeroParcela)}`;
-            
-            // Faz a requisição para atualizar na planilha
             await fetch(urlBaixa);
 
             alert("✅ Parcela dada como paga com sucesso!");
-            carregarPainel(); // Recarrega os dados atualizados na tela
+            carregarPainel();
         } catch (erro) {
             alert("Erro ao dar baixa na parcela. Tente novamente.");
             console.error(erro);
@@ -240,7 +238,7 @@
             let parcelas = dadosGlobais.parcelas || [];
 
             let totalEmp = emprestimos.length;
-            let clientesUnicos = new Set(emprestimos.map(e => e.nome)).size;
+            let clientesUnicos = new Set(emprestimos.map(e => e.telefone || e.nome)).size;
             let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorTotal || 0), 0);
             
             let valorTotalAberto = parcelas
@@ -272,7 +270,10 @@
         let tipoOrdenacao = document.getElementById('ordenacao').value;
 
         if (termoBusca) {
-            emprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(termoBusca));
+            emprestimos = emprestimos.filter(e => 
+                (e.nome && e.nome.toLowerCase().includes(termoBusca)) || 
+                (e.telefone && e.telefone.toLowerCase().includes(termoBusca))
+            );
         }
 
         emprestimos = emprestimos.filter(emp => {
@@ -318,7 +319,7 @@
                                `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
                                `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
 
-                let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+                let linkZap = `https://wa.me/55${emp.telefone ? emp.telefone.replace(/\D/g,'') : ''}?text=${encodeURIComponent(mensagem)}`;
                 let identificadorUnico = `${emp.id}_${parc.numeroParcela}`.replace(/[^a-zA-Z0-9]/g, '');
 
                 let botoesAcao = pStatus === 'pendente' 
@@ -350,6 +351,7 @@
 
             card.innerHTML = `
                 <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
+                <div class="card-row"><span>WhatsApp:</span> <span>${emp.telefone || 'Não informado'}</span></div>
                 <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
                 <div class="card-row"><span>Valor Total:</span> <span>${formatarMoedaBR(emp.valorTotal)}</span></div>
                 <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
