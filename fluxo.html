@@ -40,10 +40,10 @@
         <span class="step-number">Etapa 01</span>
         <div class="step-title">📱 Simulação e Solicitação pelo Cliente</div>
         <div class="step-desc">
-            O cliente acessa o <b>Simulador de Empréstimo</b>, preenche o Nome e o WhatsApp (com máscara automática), define o valor desejado e escolhe o prazo (de 1 a 30 dias). Ao clicar em "Solicitar via WhatsApp", o sistema:
+            O cliente acessa o <b>Simulador de Empréstimo</b>, preenche o Nome, o WhatsApp (com máscara automática), a sua <b>Chave Pix</b> (para recebimento do crédito), o valor desejado e o prazo (de 1 a 30 dias). Ao clicar em "Solicitar via WhatsApp", o sistema:
             <ul>
                 <li>Salva automaticamente o pedido na planilha central com o status inicial de <b>Pendente de Aprovação</b>.</li>
-                <li>Abre o WhatsApp do gestor (Otair) com os detalhes do pedido prontos para envio.</li>
+                <li>Abre o WhatsApp do gestor (Otair) com os detalhes do pedido e a chave Pix do cliente prontos para envio.</li>
             </ul>
         </div>
     </div>
@@ -51,13 +51,13 @@
     <!-- Etapa 2 -->
     <div class="step gestor">
         <span class="step-number">Etapa 02</span>
-        <div class="step-title">🔒 Análise, Aprovação e Notificação pelo Gestor</div>
+        <div class="step-title">🔒 Análise, Depósito e Aprovação pelo Gestor</div>
         <div class="step-desc">
             O gestor acessa o <b>Painel Administrativo</b> protegido por senha:
             <ul>
-                <li>Visualiza os pedidos pendentes que aguardam liberação.</li>
-                <li>Avalia o cadastro e clica em <b>Aprovar</b> ou <b>Recusar</b>.</li>
-                <li><b>Se Aprovado:</b> O sistema gera automaticamente os 30 dias de parcelas na planilha e libera o botão para enviar a notificação oficial direto no WhatsApp do cliente informando que o crédito foi liberado.</li>
+                <li>Visualiza os pedidos pendentes e a chave Pix informada pelo tomador.</li>
+                <li>Realiza o depósito via Pix do valor solicitado diretamente na chave Pix do cliente.</li>
+                <li>Clica em <b>Aprovar Empréstimo</b>: o sistema gera automaticamente os 30 dias de parcelas na planilha e abre o WhatsApp do cliente com uma mensagem confirmando que o crédito foi aprovado e o Pix foi depositado.</li>
                 <li><b>Se Recusado:</b> O gestor pode notificar o cliente via WhatsApp com a mensagem de recusa.</li>
             </ul>
         </div>
@@ -84,7 +84,7 @@
             O tomador pode acessar o <b>Portal do Cliente</b> a qualquer momento informando seu WhatsApp:
             <ul>
                 <li>Consulta suas parcelas em aberto e quitadas.</li>
-                <li>Pode selecionar múltiplas parcelas de uma vez só (caso queira adiantar pagamentos) e gerar <b>um único Pix Copia e Cola em lote</b> com o valor somado.</li>
+                <li>Pode selecionar múltiplas parcelas de uma vez só e gerar <b>um único Pix Copia e Cola em lote</b> com o valor somado.</li>
             </ul>
         </div>
     </div>
