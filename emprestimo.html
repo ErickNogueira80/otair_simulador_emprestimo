@@ -43,6 +43,11 @@
     </div>
 
     <div class="form-group">
+        <label for="chavePix">Sua Chave Pix (para receber o crédito):</label>
+        <input type="text" id="chavePix" placeholder="CPF, Celular, E-mail ou Aleatória">
+    </div>
+
+    <div class="form-group">
         <label for="valor">Valor Desejado (R$):</label>
         <input type="number" id="valor" placeholder="Ex: 500" oninput="calcular()">
     </div>
@@ -74,7 +79,6 @@
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
     const TAXA_JUROS_TOTAL = 0.10; 
 
-    // Máscara automática de telefone (XX) XXXXX-XXXX
     function mascaraTelefone(input) {
         let v = input.value.replace(/\D/g, "");
         if (v.length > 11) v = v.substring(0, 11);
@@ -112,6 +116,7 @@
     async function solicitarEmprestimo() {
         let nome = document.getElementById('nome').value.trim();
         let telefone = document.getElementById('telefone').value.trim();
+        let chavePix = document.getElementById('chavePix').value.trim();
         let valor = parseFloat(document.getElementById('valor').value) || 0;
         let qtdDias = parseInt(document.getElementById('parcelas').value);
 
@@ -121,6 +126,10 @@
         }
         if (telefone.length < 14) {
             alert("Por favor, informe um número de WhatsApp/Telefone válido com DDD.");
+            return;
+        }
+        if (!chavePix) {
+            alert("Por favor, informe sua Chave Pix para receber o depósito.");
             return;
         }
         if (valor <= 0) {
@@ -134,6 +143,7 @@
         let dadosEnvio = {
             nomeCliente: nome,
             telefoneCliente: telefone,
+            chavePixCliente: chavePix,
             valorEmprestado: valor,
             taxaJuros: (TAXA_JUROS_TOTAL * 100) + "%",
             qtdParcelas: qtdDias,
@@ -157,7 +167,8 @@
 
             let seuNumeroWhatsApp = "5511982778075"; 
             let mensagem = `Olá! Meu nome é *${nome}* (Tel: ${telefone}).\n\nAcabei de simular um empréstimo diário:\n` +
-                           `- Valor: ${formatarMoedaBR(valor)}\n` +
+                           `- Valor Solicitado: ${formatarMoedaBR(valor)}\n` +
+                           `- Minha Chave Pix: \`${chavePix}\`\n` +
                            `- Prazo: ${qtdDias} dias (Parcelas diárias de ${formatarMoedaBR(valorParcelaDiaria)})\n` +
                            `- Total com juros: ${formatarMoedaBR(totalJuros)}\n\n` +
                            `Gostaria de prosseguir com a solicitação!`;
