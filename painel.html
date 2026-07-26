@@ -129,8 +129,10 @@
 <script>
     const SENHA_MESTRE = "1234";
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
-    const NOME_BENEFICIARIO = "Seu Nome / Empresa";
+    
+    // CHAVE PIX CONFIGURADA
+    const CHAVE_PIX = "14997476508"; 
+    const NOME_BENEFICIARIO = "Empréstimos MEI";
 
     let dadosGlobais = { emprestimos: [], parcelas: [] };
 
@@ -148,8 +150,10 @@
 
     function formatarData(dataStr) {
         if (!dataStr) return "";
-        if (dataStr.includes("T")) {
-            let partes = dataStr.split("T")[0].split("-");
+        // Se vier no formato ISO ou com hora (ex: 2026-10-26T... ou 2026-10-26)
+        let apenasData = dataStr.split("T")[0];
+        let partes = apenasData.split("-");
+        if (partes.length === 3) {
             return `${partes[2]}/${partes[1]}/${partes[0]}`;
         }
         return dataStr;
@@ -217,7 +221,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
             return 0;
         });
 
@@ -241,8 +245,9 @@
                 let pStatus = parc.status.toLowerCase();
                 let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
                 let valorFormatado = formatarMoedaBR(parc.valor);
+                let dataVencimentoFormatada = formatarData(parc.vencimento);
 
-                let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}) no valor de *${valorFormatado}* com vencimento em *${parc.vencimento}*.\n\n` +
+                let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}) no valor de *${valorFormatado}* com vencimento em *${dataVencimentoFormatada}*.\n\n` +
                                `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
                                `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
 
@@ -251,7 +256,7 @@
                 htmlParcelas += `
                     <div class="parcela-item">
                         <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                        <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
+                        <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
                         <div class="card-row"><span>Valor Diário:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
                         <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
                         <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
