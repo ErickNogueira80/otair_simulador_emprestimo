@@ -45,7 +45,6 @@
     <div class="form-group">
         <label for="parcelas">Quantidade de Dias (Parcelas):</label>
         <select id="parcelas" onchange="calcular()">
-            <!-- Gera de 1 a 30 dias automaticamente -->
             <script>
                 for(let i=1; i<=30; i++) {
                     document.write(`<option value="${i}">${i} ${i === 1 ? 'Dia' : 'Dias'}</option>`);
@@ -68,7 +67,7 @@
 
 <script>
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    const TAXA_JUROS_TOTAL = 0.10; // 10% no ciclo total (ou ajuste conforme a regra diária desejada)
+    const TAXA_JUROS_TOTAL = 0.10; 
 
     function formatarMoedaBR(valor) {
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -131,7 +130,7 @@
 
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            let seuNumeroWhatsApp = "5511982778075"; 
+            let seuNumeroWhatsApp = "5514997476508"; 
             let mensagem = `Olá! Meu nome é *${nome}*.\n\nAcabei de simular um empréstimo diário:\n` +
                            `- Valor: ${formatarMoedaBR(valor)}\n` +
                            `- Prazo: ${qtdDias} dias (Parcelas diárias de ${formatarMoedaBR(valorParcelaDiaria)})\n` +
