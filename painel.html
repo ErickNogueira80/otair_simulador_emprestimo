@@ -36,6 +36,14 @@
         .btn-cadastrar { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; margin-top: 10px; }
         .btn-cadastrar:hover { filter: brightness(1.08); }
 
+        /* Caixa de Sucesso Personalizada (Substitui os popups feios do navegador) */
+        #boxSucessoCadastro { display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        #boxSucessoCadastro h4 { color: #065f46; margin: 0 0 5px 0; font-size: 15px; }
+        #boxSucessoCadastro p { color: #047857; font-size: 13px; margin: 0 0 12px 0; }
+        .btn-acao-sucesso { display: inline-block; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 13px; text-decoration: none; color: white; margin: 4px; border: none; cursor: pointer; }
+        .btn-copiar-pix { background: #0284c7; box-shadow: 0 2px 6px rgba(2,132,199,0.3); }
+        .btn-enviar-zap { background: #10b981; box-shadow: 0 2px 6px rgba(16,185,129,0.3); }
+
         h3.lista-titulo { font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 25px; margin-bottom: 15px; color: #1e293b; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
         
         .filter-section { background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
@@ -96,10 +104,20 @@
                     <input type="text" id="cadChavePix" placeholder="CPF, Celular, E-mail ou Aleatória">
                 </div>
                 <div class="form-group">
-                    <label for="cadValor">Valor Desejado (R$):</label>
+                    <label for="cadValor">Valor a Emprestar (R$):</label>
                     <input type="number" id="cadValor" placeholder="Ex: 500">
                 </div>
                 <button class="btn-cadastrar" onclick="cadastrarNovoEmprestimo()">Cadastrar e Gerar 30 Parcelas (90% Juros)</button>
+            </div>
+
+            <!-- Box de Sucesso Customizado (Substitui os popups do navegador) -->
+            <div id="boxSucessoCadastro">
+                <h4>✅ Empréstimo Cadastrado com Sucesso!</h4>
+                <p id="textoSucessoDetalhes">Escolha uma ação rápida abaixo:</p>
+                <div>
+                    <button class="btn-acao-sucesso btn-copiar-pix" onclick="copiarChavePixUltimo()">📋 Copiar Chave Pix do Cliente</button>
+                    <button class="btn-acao-sucesso btn-enviar-zap" onclick="enviarWhatsAppUltimo()">📲 Enviar Link do Portal no WhatsApp</button>
+                </div>
             </div>
 
             <div class="kpi-grid">
@@ -166,6 +184,7 @@
     const CIDADE_BENEFICIARIO = "SAO PAULO";
 
     let dadosGlobais = { emprestimos: [], parcelas: [] };
+    let ultimoClienteCadastrado = null; // Armazena dados do último cadastro para os botões rápidos
 
     function validarSenha() {
         let senhaDigitada = document.getElementById('txtSenha').value;
@@ -174,8 +193,11 @@
             document.getElementById('painelConteudo').style.display = 'block';
             carregarPainel();
         } else {
-            document.getElementById('msgErro').style.display = 'block';
-            document.getElementById('txtSenha').value = "";
+            let msgErro = document.getElementById('msgErro');
+            if(msgErro) {
+                msgErro.style.display = 'block';
+                document.getElementById('txtSenha').value = "";
+            }
         }
     }
 
@@ -265,31 +287,24 @@
         if (!chavePix) { alert("Informe a chave Pix do cliente."); return; }
         if (valor <= 0) { alert("Informe um valor válido."); return; }
 
-        if(!confirm(`Cadastrar empréstimo de ${formatarMoedaBR(valor)} para ${nome}?\n(Aplicará 90% de juros e gerará 30 parcelas diárias)`)) return;
-
         try {
             let urlCad = `${URL_APPS_SCRIPT}?acao=cadastrarEmprestimo&nome=${encodeURIComponent(nome)}&telefone=${encodeURIComponent(telefone)}&chavePix=${encodeURIComponent(chavePix)}&valor=${valor}`;
             let resposta = await fetch(urlCad);
             let resultado = await resposta.json();
 
             if (resultado.status === 'sucesso') {
-                alert("✅ Empréstimo cadastrado e 30 parcelas geradas com sucesso!");
+                // Guarda os dados para os botões rápidos
+                ultimoClienteCadastrado = { nome, telefone, chavePix, valor };
+
+                // Exibe o box de sucesso customizado na tela
+                document.getElementById('textoSucessoDetalhes').innerText = `Empréstimo de ${formatarMoedaBR(valor)} para ${nome} gerado com sucesso!`;
+                document.getElementById('boxSucessoCadastro').style.display = 'block';
                 
+                // Limpa os campos do formulário
                 document.getElementById('cadNome').value = "";
                 document.getElementById('cadTelefone').value = "";
                 document.getElementById('cadChavePix').value = "";
                 document.getElementById('cadValor').value = "";
-
-                // Pergunta se deseja enviar o link do portal para o WhatsApp do cliente
-                let linkPortal = "https://ericknogueira80.github.io/otair_simulador_emprestimo/portal.html";
-                let msgWhatsApp = `Olá, *${nome}*! Seu empréstimo no valor de *${formatarMoedaBR(valor)}* foi aprovado e o Pix foi enviado para sua chave: \`${chavePix}\`.\n\n` +
-                                  `Você pode acompanhar suas 30 parcelas diárias e realizar pagamentos acessando o nosso Portal do Cliente:\n${linkPortal}\n\n` +
-                                  `Seu número de acesso cadastrado é: *${telefone}*.`;
-
-                let telLimpo = telefone.replace(/\D/g,'');
-                if (confirm("Deseja abrir o WhatsApp do cliente agora para enviar o link de acesso ao Portal?")) {
-                    window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msgWhatsApp)}`, '_blank');
-                }
 
                 carregarPainel();
             } else {
@@ -299,6 +314,27 @@
             alert("Erro de conexão ao cadastrar.");
             console.error(err);
         }
+    }
+
+    function copiarChavePixUltimo() {
+        if (!ultimoClienteCadastrado) return;
+        navigator.clipboard.writeText(ultimoClienteCadastrado.chavePix).then(() => {
+            alert(`✅ Chave Pix copiada para a área de transferência:\n\n${ultimoClienteCadastrado.chavePix}`);
+        }).catch(() => {
+            prompt("Copie a chave Pix abaixo:", ultimoClienteCadastrado.chavePix);
+        });
+    }
+
+    function enviarWhatsAppUltimo() {
+        if (!ultimoClienteCadastrado) return;
+        let { nome, telefone, chavePix, valor } = ultimoClienteCadastrado;
+        let linkPortal = "https://ericknogueira80.github.io/otair_simulador_emprestimo/portal.html";
+        let msgWhatsApp = `Olá, *${nome}*! Seu empréstimo no valor de *${formatarMoedaBR(valor)}* foi aprovado e o Pix foi enviado para sua chave: \`${chavePix}\`.\n\n` +
+                          `Você pode acompanhar suas 30 parcelas diárias e realizar pagamentos acessando o nosso Portal do Cliente:\n${linkPortal}\n\n` +
+                          `Seu número de acesso cadastrado é: *${telefone}*.`;
+
+        let telLimpo = telefone.replace(/\D/g,'');
+        window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msgWhatsApp)}`, '_blank');
     }
 
     async function darBaixa(idEmprestimo, numeroParcela) {
@@ -380,7 +416,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
             return 0;
         });
 
