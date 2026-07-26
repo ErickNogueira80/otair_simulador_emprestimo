@@ -33,7 +33,6 @@
         
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-quitado { background: #10b981; color: white; }
-        .badge-pendente { background: #ef4444; color: white; }
         
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 20px; display: none; font-weight: 600; }
         .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
@@ -64,6 +63,7 @@
     const NOME_BENEFICIARIO = "Emprestimos MEI";
     const CIDADE_BENEFICIARIO = "SAO PAULO";
 
+    // Máscara automática de telefone (XX) XXXXX-XXXX
     function mascaraTelefone(input) {
         let v = input.value.replace(/\D/g, "");
         if (v.length > 11) v = v.substring(0, 11);
@@ -205,70 +205,52 @@
             let htmlFinal = "<h3>Seus Empréstimos</h3>";
 
             meusEmprestimos.forEach(emp => {
-                let isPendente = emp.statusAprovacao === 'Pendente';
                 let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
                 let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
 
-                let statusGeralBadge = isPendente 
-                    ? '<span class="badge badge-pendente">Pendente de Aprovação</span>' 
-                    : (todasQuitadas ? '<span class="badge badge-quitado">Quitado</span>' : '<span class="badge">Em Aberto</span>');
+                let statusGeralBadge = todasQuitadas 
+                    ? '<span class="badge badge-quitado">Quitado</span>' 
+                    : '<span class="badge">Em Aberto</span>';
 
-                let htmlSecaoParcelas = "";
+                let htmlParcelas = "";
+                parcelasDoEmp.forEach(parc => {
+                    let pStatus = parc.status.toLowerCase();
+                    let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
+                    let valorFormatado = formatarMoedaBR(parc.valor);
+                    let dataVencimentoFormatada = formatarData(parc.vencimento);
 
-                if (isPendente) {
-                    htmlSecaoParcelas = `
-                        <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 8px; text-align: center; margin-top: 12px;">
-                            <strong style="color: #dc2626; font-size: 13px; display: block; margin-bottom: 4px;">Aguardando Análise do Gestor</strong>
-                            <p style="font-size: 12px; color: #64748b; margin: 0;">Seu pedido foi recebido e está em análise. As parcelas aparecerão aqui assim que o crédito for aprovado.</p>
-                        </div>
-                    `;
-                } else {
-                    let htmlParcelas = "";
-                    parcelasDoEmp.forEach(parc => {
-                        let pStatus = parc.status.toLowerCase();
-                        let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
-                        let valorFormatado = formatarMoedaBR(parc.valor);
-                        let dataVencimentoFormatada = formatarData(parc.vencimento);
-
-                        if (pStatus === 'pendente') {
-                            htmlParcelas += `
-                                <div class="parcela-item">
-                                    <input type="checkbox" class="chk-${emp.id}" value="${parc.valor}" data-numero="${parc.numeroParcela}" onchange="atualizarBotaoLote('${emp.id}')" style="width: 20px; height: 20px; cursor: pointer;">
-                                    <div class="parcela-info">
-                                        <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                                        <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
-                                        <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
-                                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                                    </div>
+                    let elementoParcela = "";
+                    if (pStatus === 'pendente') {
+                        elementoParcela = `
+                            <div class="parcela-item">
+                                <input type="checkbox" class="chk-${emp.id}" value="${parc.valor}" data-numero="${parc.numeroParcela}" onchange="atualizarBotaoLote('${emp.id}')" style="width: 20px; height: 20px; cursor: pointer;">
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
                                 </div>
-                            `;
-                        } else {
-                            htmlParcelas += `
-                                <div class="parcela-item" style="opacity: 0.7;">
-                                    <div style="width: 20px;">✔</div>
-                                    <div class="parcela-info">
-                                        <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                                        <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
-                                        <div class="card-row"><span>Valor:</span> <strong style="color: #10b981;">${valorFormatado}</strong></div>
-                                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                                    </div>
+                            </div>
+                        `;
+                    } else {
+                        elementoParcela = `
+                            <div class="parcela-item" style="opacity: 0.7;">
+                                <div style="width: 20px;">✔</div>
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #10b981;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
                                 </div>
-                            `;
-                        }
-                    });
+                            </div>
+                        `;
+                    }
+                    htmlParcelas += elementoParcela;
+                });
 
-                    let botaoLote = !todasQuitadas 
-                        ? `<button id="btn-lote-${emp.id}" class="btn-pix-lote" onclick="pagarSelecionadas('${emp.id}')">📋 Pagar Selecionadas</button>` 
-                        : "";
-
-                    htmlSecaoParcelas = `
-                        <div style="margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
-                            <strong>Marque as parcelas que deseja pagar:</strong>
-                            ${htmlParcelas}
-                            ${botaoLote}
-                        </div>
-                    `;
-                }
+                let botaoLote = !todasQuitadas 
+                    ? `<button id="btn-lote-${emp.id}" class="btn-pix-lote" onclick="pagarSelecionadas('${emp.id}')">📋 Pagar Selecionadas</button>` 
+                    : "";
 
                 htmlFinal += `
                     <div class="emp-card">
@@ -276,7 +258,11 @@
                         <div class="card-row"><span>Data do Pedido:</span> <span>${formatarData(emp.data)}</span></div>
                         <div class="card-row"><span>Valor Total:</span> <strong>${formatarMoedaBR(emp.valorTotal)}</strong></div>
                         <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
-                        ${htmlSecaoParcelas}
+                        <div style="margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                            <strong>Marque as parcelas que deseja pagar:</strong>
+                            ${htmlParcelas}
+                            ${botaoLote}
+                        </div>
                     </div>
                 `;
             });
