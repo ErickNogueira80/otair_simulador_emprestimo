@@ -5,117 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Controle - Empréstimos</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2, h3 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-        th { background-color: #007bff; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .btn { background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { font-size: 20px; margin-top: 0; color: #222; }
+        p { font-size: 14px; color: #666; }
+        h3 { font-size: 16px; border-bottom: 2px solid #007bff; padding-bottom: 5px; margin-top: 25px; color: #007bff; }
+        
+        /* Estilo de Cartões para Celular */
+        .card { background: #fff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .card-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+        .card-row span:first-child { color: #666; font-weight: bold; }
+        .card-row span:last-child { text-align: right; color: #111; }
+        
+        .btn { background: #25d366; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; display: block; text-align: center; margin-top: 10px; font-size: 14px; }
         .btn:hover { background: #1ebe5d; }
-        .loading { text-align: center; font-size: 16px; color: #666; padding: 20px; }
+        
+        .loading { text-align: center; font-size: 15px; color: #666; padding: 30px; }
+        .badge { background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Painel Administrativo - Empréstimos</h2>
-    <p>Acompanhe os pedidos, prazos de vencimento e envie cobranças via WhatsApp com Pix.</p>
+    <h2>Painel Administrativo</h2>
+    <p>Acompanhe os pedidos e envie cobranças via WhatsApp.</p>
 
-    <div id="loading" class="loading">Carregando dados da planilha...</div>
+    <div id="loading" class="loading">Carregando dados...</div>
 
     <div id="conteudo" style="display: none;">
-        <h3>Lista de Empréstimos Solicitados</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Cliente</th>
-                    <th>Valor Total</th>
-                    <th>Parcelas</th>
-                </tr>
-            </thead>
-            <tbody id="tabelaEmprestimos"></tbody>
-        </table>
+        <h3>Empréstimos Solicitados</h3>
+        <div id="listaEmprestimos"></div>
 
-        <h3>Detalhamento das Parcelas & Cobrança</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID Empréstimo</th>
-                    <th>Parc.</th>
-                    <th>Vencimento</th>
-                    <th>Valor</th>
-                    <th>Status</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody id="tabelaParcelas"></tbody>
-        </table>
+        <h3>Parcelas & Cobrança</h3>
+        <div id="listaParcelas"></div>
     </div>
 </div>
 
 <script>
-    // COLE A SUA URL DO APPS SCRIPT AQUI
+    // SUA URL DO APPS SCRIPT
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbx69l3Qd-KYv_EjYNW18n3iU36WIeUAqL-8LvtR86-0HrQC9RMerVkKkiPe1ygnoL29/exec";
     
-    // SUA CHAVE PIX PARA COBRANÇA
-    const CHAVE_PIX = "seu_email_ou_telefone_ou_cpf_aqui"; 
-    const NOME_BENEFICIARIO = "Seu Nome / Nome da Empresa";
+    // SUA CHAVE PIX E NOME
+    const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
+    const NOME_BENEFICIARIO = "Seu Nome / Empresa";
+
+    function formatarData(dataStr) {
+        if (!dataStr) return "";
+        // Se vier no formato ISO do Google (ex: 2026-07-26T...)
+        if (dataStr.includes("T")) {
+            let partes = dataStr.split("T")[0].split("-");
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dataStr;
+    }
 
     async function carregarPainel() {
         try {
             let resposta = await fetch(URL_APPS_SCRIPT);
             let dados = await resposta.json();
 
-            let tbodyEmp = document.getElementById('tabelaEmprestimos');
-            let tbodyParc = document.getElementById('tabelaParcelas');
+            let divEmp = document.getElementById('listaEmprestimos');
+            let divParc = document.getElementById('listaParcelas');
 
-            tbodyEmp.innerHTML = "";
-            tbodyParc.innerHTML = "";
+            divEmp.innerHTML = "";
+            divParc.innerHTML = "";
 
-            // Preenche tabela de empréstimos
+            // Renderiza Empréstimos em Cards
             dados.emprestimos.forEach(emp => {
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${emp.data}</td>
-                    <td><strong>${emp.nome}</strong></td>
-                    <td>R$ ${parseFloat(emp.valorTotal).toFixed(2).replace('.', ',')}</td>
-                    <td>${emp.qtdParcelas}x</td>
+                let card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
+                    <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
+                    <div class="card-row"><span>Valor Total:</span> <span>R$ ${parseFloat(emp.valorTotal).toFixed(2).replace('.', ',')}</span></div>
+                    <div class="card-row"><span>Parcelas:</span> <span>${emp.qtdParcelas}x</span></div>
                 `;
-                tbodyEmp.appendChild(tr);
+                divEmp.appendChild(card);
             });
 
-            // Preenche tabela de parcelas
+            // Renderiza Parcelas em Cards
             dados.parcelas.forEach(parc => {
                 let emprestimoPai = dados.emprestimos.find(e => e.id === parc.idEmprestimo);
                 let nomeCliente = emprestimoPai ? emprestimoPai.nome : "Cliente";
 
-                // Monta mensagem de cobrança WhatsApp
                 let mensagem = `Olá, *${nomeCliente}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}ª) no valor de *R$ ${parc.valor}* com vencimento em *${parc.vencimento}*.\n\n` +
                                `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
                                `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
 
                 let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${parc.idEmprestimo}</td>
-                    <td>${parc.numeroParcela}ª</td>
-                    <td>${parc.vencimento}</td>
-                    <td>R$ ${parc.valor.replace('.', ',')}</td>
-                    <td>${parc.status}</td>
-                    <td><a href="${linkZap}" target="_blank" class="btn">Cobrar via Pix</a></td>
+                let card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-row"><span>Cliente:</span> <strong>${nomeCliente}</strong></div>
+                    <div class="card-row"><span>Parcela:</span> <span>${parc.numeroParcela}ª</span></div>
+                    <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
+                    <div class="card-row"><span>Valor:</span> <strong style="color: #007bff;">R$ ${parc.valor.replace('.', ',')}</strong></div>
+                    <div class="card-row"><span>Status:</span> <span class="badge">${parc.status}</span></div>
+                    <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
                 `;
-                tbodyParc.appendChild(tr);
+                divParc.appendChild(card);
             });
 
             document.getElementById('loading').style.display = 'none';
             document.getElementById('conteudo').style.display = 'block';
 
         } catch (erro) {
-            document.getElementById('loading').innerText = "Erro ao carregar dados. Verifique a URL do script.";
+            document.getElementById('loading'].innerText = "Erro ao carregar dados.";
             console.error(erro);
         }
     }
