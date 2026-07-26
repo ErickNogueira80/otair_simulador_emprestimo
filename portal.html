@@ -28,12 +28,11 @@
         .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .parcela-info { flex: 1; }
         
-        .btn-pix-lote { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; text-align: center; margin-top: 15px; font-size: 14px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; display: none; }
+        .btn-pix-lote { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; text-align: center; margin-bottom: 15px; font-size: 15px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; display: none; }
         .btn-pix-lote:hover { filter: brightness(1.08); }
         
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-quitado { background: #10b981; color: white; }
-        .badge-pendente { background: #ef4444; color: white; }
         
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 20px; display: none; font-weight: 600; }
         .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
@@ -91,6 +90,83 @@
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
+    function gerarPayloadPix(chave, nome, cidade, valor, identificador) {
+        function formatoId(id, valorCampo) {
+            let tamanho = String(valorCampo.length).padStart(2, '0');
+            return id + tamanho + valorCampo;
+        }
+
+        let gui = formatoId('00', 'br.gov.bcb.pix');
+        let chavePixField = formatoId('01', chave);
+        let merchantAccount = formatoId('26', gui + chavePixField);
+        
+        let mcc = formatoId('52', '0000');
+        let moeda = formatoId('53', '986');
+        let valorStr = formatoId('54', Number(valor).toFixed(2));
+        let pais = formatoId('58', 'BR');
+        let beneficiario = formatoId('59', nome.substring(0, 25));
+        let cidadeBeneficiario = formatoId('60', cidade.substring(0, 15));
+        
+        let txId = identificador ? identificador.substring(0, 25) : '***';
+        let additionalData = formatoId('62', formatoId('05', txId));
+
+        let payloadSemCrc = formatoId('00', '01') + merchantAccount + mcc + moeda + valorStr + pais + beneficiario + cidadeBeneficiario + additionalData + '6304';
+        
+        let polinomio = 0x1021;
+        let resultado = 0xFFFF;
+        for (let i = 0; i < payloadSemCrc.length; i++) {
+            resultado ^= (payloadSemCrc.charCodeAt(i) << 8);
+            for (let j = 0; j < 8; j++) {
+                if ((resultado & 0x8000) !== 0) {
+                    resultado = ((resultado << 1) ^ polinomio) & 0xFFFF;
+                } else {
+                    resultado = (resultado << 1) & 0xFFFF;
+                }
+            }
+        }
+        let crc16 = resultado.toString(16).toUpperCase().padStart(4, '0');
+        return payloadSemCrc + crc16;
+    }
+
+    function pagarSelecionadas(idEmprestimo) {
+        let checkboxes = document.querySelectorAll(`.chk-${idEmprestimo}:checked`);
+        if (checkboxes.length === 0) {
+            alert("Por favor, selecione ao menos uma parcela para pagar.");
+            return;
+        }
+
+        let valorTotalLote = 0;
+        let parcelasStr = [];
+
+        checkboxes.forEach(chk => {
+            valorTotalLote += parseFloat(chk.value);
+            parcelasStr.push(chk.getAttribute('data-numero'));
+        });
+
+        let identificadorUnico = `${idEmprestimo}_lote_${parcelasStr.join('-')}`.replace(/[^a-zA-Z0-9]/g, '');
+        let payload = gerarPayloadPix(CHAVE_PIX, NOME_BENEFICIARIO, CIDADE_BENEFICIARIO, valorTotalLote, identificadorUnico);
+
+        navigator.clipboard.writeText(payload).then(() => {
+            alert(`✅ Pix Copia e Cola gerado para ${parcelasStr.length} parcela(s)!\n\nValor Total: ${formatarMoedaBR(valorTotalLote)}\n\nO código foi copiado. Cole no app do seu banco.`);
+        }).catch(err => {
+            prompt(`Valor Total: ${formatarMoedaBR(valorTotalLote)}\nCopie o código Pix abaixo:`, payload);
+        });
+    }
+
+    function atualizarBotaoLote(idEmprestimo) {
+        let checkboxes = document.querySelectorAll(`.chk-${idEmprestimo}:checked`);
+        let botao = document.getElementById(`btn-lote-${idEmprestimo}`);
+        
+        if (checkboxes.length > 0) {
+            let soma = 0;
+            checkboxes.forEach(c => soma += parseFloat(c.value));
+            botao.style.display = "block";
+            botao.innerText = `📋 Gerar Pix Copia e Cola (${checkboxes.length} Parcela(s) - ${formatarMoedaBR(soma)})`;
+        } else {
+            botao.style.display = "none";
+        }
+    }
+
     async function buscarMeusEmprestimos() {
         let telInput = document.getElementById('telefoneCliente').value.trim();
         let telBusca = telInput.replace(/\D/g, '');
@@ -128,78 +204,66 @@
             let htmlFinal = "<h3>Seus Empréstimos</h3>";
 
             meusEmprestimos.forEach(emp => {
-                let isPendente = emp.statusAprovacao === 'Pendente';
                 let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-                let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
+                let totalParcelas = parcelasDoEmp.length;
+                let parcelasPagas = parcelasDoEmp.filter(p => p.status.toLowerCase() !== 'pendente').length;
+                let parcelasRestantes = totalParcelas - parcelasPagas;
+                let todasQuitadas = totalParcelas > 0 && parcelasRestantes === 0;
 
-                let statusGeralBadge = isPendente 
-                    ? '<span class="badge badge-pendente">Pendente de Aprovação</span>' 
-                    : (todasQuitadas ? '<span class="badge badge-quitado">Quitado</span>' : '<span class="badge">Em Aberto</span>');
+                let statusGeralBadge = todasQuitadas ? '<span class="badge badge-quitado">Quitado</span>' : '<span class="badge">Em Aberto</span>';
 
-                let htmlSecaoParcelas = "";
+                let htmlParcelas = "";
+                parcelasDoEmp.forEach(parc => {
+                    let pStatus = parc.status.toLowerCase();
+                    let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
+                    let valorFormatado = formatarMoedaBR(parc.valor);
+                    let dataVencimentoFormatada = formatarData(parc.vencimento);
 
-                if (isPendente) {
-                    htmlSecaoParcelas = `
-                        <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 14px; border-radius: 8px; text-align: center; margin-top: 15px;">
-                            <strong style="color: #dc2626; font-size: 14px; display: block; margin-bottom: 6px;">⏳ Aguardando Aprovação do Gestor</strong>
-                            <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.4;">Seu pedido de empréstimo foi recebido e está em análise. Assim que aprovado e depositado, as parcelas aparecerão aqui para pagamento.</p>
-                        </div>
-                    `;
-                } else {
-                    let htmlParcelas = "";
-                    parcelasDoEmp.forEach(parc => {
-                        let pStatus = parc.status.toLowerCase();
-                        let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
-                        let valorFormatado = formatarMoedaBR(parc.valor);
-                        let dataVencimentoFormatada = formatarData(parc.vencimento);
-
-                        if (pStatus === 'pendente') {
-                            htmlParcelas += `
-                                <div class="parcela-item">
-                                    <input type="checkbox" class="chk-${emp.id}" value="${parc.valor}" data-numero="${parc.numeroParcela}" onchange="atualizarBotaoLote('${emp.id}')" style="width: 20px; height: 20px; cursor: pointer;">
-                                    <div class="parcela-info">
-                                        <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                                        <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
-                                        <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
-                                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                                    </div>
+                    if (pStatus === 'pendente') {
+                        htmlParcelas += `
+                            <div class="parcela-item">
+                                <input type="checkbox" class="chk-${emp.id}" value="${parc.valor}" data-numero="${parc.numeroParcela}" onchange="atualizarBotaoLote('${emp.id}')" style="width: 20px; height: 20px; cursor: pointer;">
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
                                 </div>
-                            `;
-                        } else {
-                            htmlParcelas += `
-                                <div class="parcela-item" style="opacity: 0.7;">
-                                    <div style="width: 20px;">✔</div>
-                                    <div class="parcela-info">
-                                        <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                                        <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
-                                        <div class="card-row"><span>Valor:</span> <strong style="color: #10b981;">${valorFormatado}</strong></div>
-                                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                                    </div>
+                            </div>
+                        `;
+                    } else {
+                        htmlParcelas += `
+                            <div class="parcela-item" style="opacity: 0.7;">
+                                <div style="width: 20px; color: #10b981; font-weight: bold;">✔</div>
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #10b981;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
                                 </div>
-                            `;
-                        }
-                    });
+                            </div>
+                        `;
+                    }
+                });
 
-                    let botaoLote = !todasQuitadas 
-                        ? `<button id="btn-lote-${emp.id}" class="btn-pix-lote" onclick="pagarSelecionadas('${emp.id}')">📋 Pagar Selecionadas</button>` 
-                        : "";
-
-                    htmlSecaoParcelas = `
-                        <div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-                            <strong>Marque as parcelas que deseja pagar:</strong>
-                            ${htmlParcelas}
-                            ${botaoLote}
-                        </div>
-                    `;
-                }
+                let botaoLote = !todasQuitadas 
+                    ? `<button id="btn-lote-${emp.id}" class="btn-pix-lote" onclick="pagarSelecionadas('${emp.id}')">📋 Gerar Pix Copia e Cola</button>` 
+                    : "";
 
                 htmlFinal += `
                     <div class="emp-card">
                         <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
-                        <div class="card-row"><span>Data do Pedido:</span> <span>${formatarData(emp.data)}</span></div>
+                        <div class="card-row"><span>Data do Cadastro:</span> <span>${formatarData(emp.data)}</span></div>
                         <div class="card-row"><span>Valor Total:</span> <strong>${formatarMoedaBR(emp.valorTotal)}</strong></div>
+                        <div class="card-row"><span>Progresso:</span> <strong style="color: #059669;">${parcelasPagas} de ${totalParcelas} pagas (${parcelasRestantes} restantes)</strong></div>
                         <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
-                        ${htmlSecaoParcelas}
+                        
+                        <div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+                            <strong>Marque as parcelas que deseja pagar:</strong>
+                            <p style="font-size: 11px; color: #64748b; margin: 4px 0 12px 0;">(O botão para gerar o Pix aparecerá logo abaixo ao marcar as parcelas)</p>
+                            ${botaoLote}
+                            ${htmlParcelas}
+                        </div>
                     </div>
                 `;
             });
