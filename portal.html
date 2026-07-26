@@ -27,23 +27,26 @@
         .card-row span:first-child { color: #64748b; font-weight: 600; }
         .card-row span:last-child { text-align: right; color: #1e293b; font-weight: 500; }
 
-        .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 10px; }
+        .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .parcela-info { flex: 1; }
         
-        .btn-pix { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; text-align: center; margin-top: 10px; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: filter 0.2s; }
-        .btn-pix:hover { filter: brightness(1.08); }
+        .btn-pix-lote { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; text-align: center; margin-top: 15px; font-size: 14px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; display: none; }
+        .btn-pix-lote:hover { filter: brightness(1.08); }
         
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-quitado { background: #10b981; color: white; }
         
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 20px; display: none; font-weight: 600; }
         .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
+        
+        checkbox { transform: scale(1.2); cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Portal do Cliente</h2>
-    <p class="subtitle">Consulte seus empréstimos e gere o Pix para pagamento.</p>
+    <p class="subtitle">Consulte seus empréstimos e selecione as parcelas para pagar.</p>
 
     <div class="busca-section">
         <label for="nomeCliente">Digite seu Nome Completo:</label>
@@ -117,14 +120,43 @@
         return payloadSemCrc + crc16;
     }
 
-    function copiarPixCopiaECola(chave, nome, cidade, valor, idParcela) {
-        let payload = gerarPayloadPix(chave, nome, cidade, valor, idParcela);
-        
-        navigator.clipboard.writeText(payload).then(() => {
-            alert("✅ Pix Copia e Cola copiado com sucesso!\n\nCole no aplicativo do seu banco para pagar.");
-        }).catch(err => {
-            prompt("Copie o código abaixo:", payload);
+    function pagarSelecionadas(idEmprestimo) {
+        let checkboxes = document.querySelectorAll(`.chk-${idEmprestimo}:checked`);
+        if (checkboxes.length === 0) {
+            alert("Por favor, selecione ao menos uma parcela para pagar.");
+            return;
+        }
+
+        let valorTotalLote = 0;
+        let parcelasStr = [];
+
+        checkboxes.forEach(chk => {
+            valorTotalLote += parseFloat(chk.value);
+            parcelasStr.push(chk.getAttribute('data-numero'));
         });
+
+        let identificadorUnico = `${idEmprestimo}_lote_${parcelasStr.join('-')}`.replace(/[^a-zA-Z0-9]/g, '');
+        let payload = gerarPayloadPix(CHAVE_PIX, NOME_BENEFICIARIO, CIDADE_BENEFICIARIO, valorTotalLote, identificadorUnico);
+
+        navigator.clipboard.writeText(payload).then(() => {
+            alert(`✅ Pix Copia e Cola gerado para ${parcelasStr.length} parcela(s)!\n\nValor Total: ${formatarMoedaBR(valorTotalLote)}\n\nO código foi copiado. Cole no app do seu banco.`);
+        }).catch(err => {
+            prompt(`Valor Total: ${formatarMoedaBR(valorTotalLote)}\nCopie o código Pix abaixo:`, payload);
+        });
+    }
+
+    function atualizarBotaoLote(idEmprestimo) {
+        let checkboxes = document.querySelectorAll(`.chk-${idEmprestimo}:checked`);
+        let botao = document.getElementById(`btn-lote-${idEmprestimo}`);
+        
+        if (checkboxes.length > 0) {
+            let soma = 0;
+            checkboxes.forEach(c => soma += parseFloat(c.value));
+            botao.style.display = "block";
+            botao.innerText = `📋 Pagar ${checkboxes.length} Parcela(s) Selecionada(s) - ${formatarMoedaBR(soma)}`;
+        } else {
+            botao.style.display = "none";
+        }
     }
 
     async function buscarMeusEmprestimos() {
@@ -150,7 +182,6 @@
             let emprestimos = dados.emprestimos || [];
             let parcelas = dados.parcelas || [];
 
-            // Filtra os empréstimos do cliente (busca parcial ou exata pelo nome)
             let meusEmprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(nomeBusca));
 
             if (meusEmprestimos.length === 0) {
@@ -174,22 +205,39 @@
                     let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
                     let valorFormatado = formatarMoedaBR(parc.valor);
                     let dataVencimentoFormatada = formatarData(parc.vencimento);
-                    let identificadorUnico = `${emp.id}_${parc.numeroParcela}`.replace(/[^a-zA-Z0-9]/g, '');
 
-                    let botaoPagamento = pStatus === 'pendente' 
-                        ? `<button class="btn-pix" onclick="copiarPixCopiaECola('${CHAVE_PIX}', '${NOME_BENEFICIARIO}', '${CIDADE_BENEFICIARIO}', ${parc.valor}, '${identificadorUnico}')">📋 Pagar via Pix (R$ ${parc.valor})</button>`
-                        : `<p style="text-align:center; color:#10b981; font-weight:bold; margin-top:8px;">✔ Parcela Paga</p>`;
-
-                    htmlParcelas += `
-                        <div class="parcela-item">
-                            <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
-                            <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
-                            <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
-                            <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                            ${botaoPagamento}
-                        </div>
-                    `;
+                    let elementoParcela = "";
+                    if (pStatus === 'pendente') {
+                        elementoParcela = `
+                            <div class="parcela-item">
+                                <input type="checkbox" class="chk-${emp.id}" value="${parc.valor}" data-numero="${parc.numeroParcela}" onchange="atualizarBotaoLote('${emp.id}')" style="width: 20px; height: 20px; cursor: pointer;">
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        elementoParcela = `
+                            <div class="parcela-item" style="opacity: 0.7;">
+                                <div style="width: 20px;">✔</div>
+                                <div class="parcela-info">
+                                    <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                                    <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                                    <div class="card-row"><span>Valor:</span> <strong style="color: #10b981;">${valorFormatado}</strong></div>
+                                    <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    htmlParcelas += elementoParcela;
                 });
+
+                let botaoLote = !todasQuitadas 
+                    ? `<button id="btn-lote-${emp.id}" class="btn-pix-lote" onclick="pagarSelecionadas('${emp.id}')">📋 Pagar Selecionadas</button>` 
+                    : "";
 
                 htmlFinal += `
                     <div class="emp-card">
@@ -197,8 +245,9 @@
                         <div class="card-row"><span>Valor Total:</span> <strong>${formatarMoedaBR(emp.valorTotal)}</strong></div>
                         <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
                         <div style="margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
-                            <strong>Suas Parcelas:</strong>
+                            <strong>Marque as parcelas que deseja pagar:</strong>
                             ${htmlParcelas}
+                            ${botaoLote}
                         </div>
                     </div>
                 `;
