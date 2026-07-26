@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guia do Processo - Sistema de Crédito Diário</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; color: #334155; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; }
+        .container { max-width: 750px; width: 100%; background: #ffffff; padding: 35px 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); box-sizing: border-box; border-top: 6px solid #0052cc; }
+        
+        h2 { text-align: center; color: #1e293b; font-size: 24px; margin-top: 0; margin-bottom: 5px; }
+        p.subtitle { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 30px; }
+        
+        .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #0052cc; position: relative; }
+        .step.gestor { border-left-color: #f59e0b; }
+        .step.cobranca { border-left-color: #10b981; }
+        .step.cliente-portal { border-left-color: #0284c7; }
+        
+        .step-number { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; }
+        .step-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
+        .step-desc { font-size: 14px; color: #475569; line-height: 1.6; margin: 0; }
+        .step-desc ul { margin: 8px 0 0 20px; padding: 0; }
+        .step-desc li { margin-bottom: 5px; }
+
+        .nav-links { text-align: center; margin-top: 25px; }
+        .nav-links a { background: #0052cc; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 10px rgba(0,82,204,0.2); }
+        .nav-links a:hover { filter: brightness(1.1); }
+
+        .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; text-align: center; letter-spacing: 0.3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Fluxo Operacional de Ponta a Ponta</h2>
+    <p class="subtitle">Guia completo da jornada do crédito diário</p>
+
+    <!-- Etapa 1 -->
+    <div class="step">
+        <span class="step-number">Etapa 01</span>
+        <div class="step-title">📱 Simulação e Solicitação pelo Cliente</div>
+        <div class="step-desc">
+            O cliente acessa o <b>Simulador de Empréstimo</b>, preenche o Nome e o WhatsApp (com máscara automática), define o valor desejado e escolhe o prazo (de 1 a 30 dias). Ao clicar em "Solicitar via WhatsApp", o sistema:
+            <ul>
+                <li>Salva automaticamente o pedido na planilha central com o status inicial de <b>Pendente de Aprovação</b>.</li>
+                <li>Abre o WhatsApp do gestor (Otair) com os detalhes do pedido prontos para envio.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Etapa 2 -->
+    <div class="step gestor">
+        <span class="step-number">Etapa 02</span>
+        <div class="step-title">🔒 Análise, Aprovação e Notificação pelo Gestor</div>
+        <div class="step-desc">
+            O gestor acessa o <b>Painel Administrativo</b> protegido por senha:
+            <ul>
+                <li>Visualiza os pedidos pendentes que aguardam liberação.</li>
+                <li>Avalia o cadastro e clica em <b>Aprovar</b> ou <b>Recusar</b>.</li>
+                <li><b>Se Aprovado:</b> O sistema gera automaticamente os 30 dias de parcelas na planilha e libera o botão para enviar a notificação oficial direto no WhatsApp do cliente informando que o crédito foi liberado.</li>
+                <li><b>Se Recusado:</b> O gestor pode notificar o cliente via WhatsApp com a mensagem de recusa.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Etapa 3 -->
+    <div class="step cobranca">
+        <span class="step-number">Etapa 03</span>
+        <div class="step-title">💳 Gestão, Pix e Baixa de Pagamentos</div>
+        <div class="step-desc">
+            Com o crédito ativo, o painel centraliza o acompanhamento diário:
+            <ul>
+                <li>O gestor pode gerar o <b>Pix Copia e Cola</b> com o valor exato da parcela ou disparar a cobrança via WhatsApp.</li>
+                <li>Assim que o pagamento cai na conta, o gestor clica em <b>Dar Baixa (Marcar como Pago)</b> para atualizar a planilha instantaneamente.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Etapa 4 -->
+    <div class="step cliente-portal">
+        <span class="step-number">Etapa 04</span>
+        <div class="step-title">👤 Autonomia no Portal do Cliente</div>
+        <div class="step-desc">
+            O tomador pode acessar o <b>Portal do Cliente</b> a qualquer momento informando seu WhatsApp:
+            <ul>
+                <li>Consulta suas parcelas em aberto e quitadas.</li>
+                <li>Pode selecionar múltiplas parcelas de uma vez só (caso queira adiantar pagamentos) e gerar <b>um único Pix Copia e Cola em lote</b> com o valor somado.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="nav-links">
+        <a href="index.html">← Voltar para a Central de Acesso</a>
+    </div>
+
+</div>
+
+<div class="footer">Desenvolvido por EFK Solutions</div>
+
+</body>
+</html>
