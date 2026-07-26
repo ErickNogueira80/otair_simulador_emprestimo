@@ -12,7 +12,6 @@
         h2 { font-size: 22px; margin-top: 0; color: #1e293b; }
         p.subtitle { font-size: 14px; color: #64748b; margin-bottom: 22px; }
         
-        /* Área de Busca do Cliente */
         .busca-section { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; text-align: center; }
         label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; box-sizing: border-box; background-color: #fff; text-align: center; margin-bottom: 12px; }
@@ -21,7 +20,6 @@
         .btn-consultar { background: linear-gradient(135deg, #0052cc 0%, #004099); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(0,82,204,0.3); transition: filter 0.2s; }
         .btn-consultar:hover { filter: brightness(1.1); }
 
-        /* Cards de Resultados */
         .emp-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); border-left: 4px solid #0052cc; }
         .card-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
         .card-row span:first-child { color: #64748b; font-weight: 600; }
@@ -38,19 +36,17 @@
         
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 20px; display: none; font-weight: 600; }
         .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
-        
-        checkbox { transform: scale(1.2); cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Portal do Cliente</h2>
-    <p class="subtitle">Consulte seus empréstimos e selecione as parcelas para pagar.</p>
+    <p class="subtitle">Consulte seus empréstimos informando seu WhatsApp.</p>
 
     <div class="busca-section">
-        <label for="nomeCliente">Digite seu Nome Completo:</label>
-        <input type="text" id="nomeCliente" placeholder="Ex: João da Silva" onkeypress="if(event.key === 'Enter') buscarMeusEmprestimos()">
+        <label for="telefoneCliente">Digite seu WhatsApp (com DDD):</label>
+        <input type="text" id="telefoneCliente" placeholder="Ex: 11999999999" onkeypress="if(event.key === 'Enter') buscarMeusEmprestimos()">
         <button class="btn-consultar" onclick="buscarMeusEmprestimos()">Consultar Meus Empréstimos</button>
     </div>
 
@@ -81,7 +77,6 @@
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    // Gerador de Pix Copia e Cola (Payload BR Code)
     function gerarPayloadPix(chave, nome, cidade, valor, identificador) {
         function formatoId(id, valorCampo) {
             let tamanho = String(valorCampo.length).padStart(2, '0');
@@ -160,12 +155,12 @@
     }
 
     async function buscarMeusEmprestimos() {
-        let nomeBusca = document.getElementById('nomeCliente').value.trim().toLowerCase();
+        let telBusca = document.getElementById('telefoneCliente').value.trim().replace(/\D/g, '');
         let divResultado = document.getElementById('resultadoBusca');
         let loading = document.getElementById('loading');
 
-        if (!nomeBusca) {
-            alert("Por favor, digite seu nome completo para buscar.");
+        if (!telBusca) {
+            alert("Por favor, digite seu número de WhatsApp.");
             return;
         }
 
@@ -182,10 +177,14 @@
             let emprestimos = dados.emprestimos || [];
             let parcelas = dados.parcelas || [];
 
-            let meusEmprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(nomeBusca));
+            // Filtra exato ou por parte do telefone cadastrado (removendo caracteres especiais)
+            let meusEmprestimos = emprestimos.filter(e => {
+                let telCadastrado = e.telefone ? String(e.telefone).replace(/\D/g, '') : '';
+                return telCadastrado.includes(telBusca);
+            });
 
             if (meusEmprestimos.length === 0) {
-                divResultado.innerHTML = "<p style='text-align:center; color:#64748b;'>Nenhum empréstimo encontrado para este nome. Verifique se digitou corretamente.</p>";
+                divResultado.innerHTML = "<p style='text-align:center; color:#64748b;'>Nenhum empréstimo encontrado para este número de WhatsApp. Verifique se digitou corretamente.</p>";
                 return;
             }
 
@@ -241,6 +240,7 @@
 
                 htmlFinal += `
                     <div class="emp-card">
+                        <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
                         <div class="card-row"><span>Data do Pedido:</span> <span>${formatarData(emp.data)}</span></div>
                         <div class="card-row"><span>Valor Total:</span> <strong>${formatarMoedaBR(emp.valorTotal)}</strong></div>
                         <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
