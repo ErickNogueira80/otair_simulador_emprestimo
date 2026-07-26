@@ -1,298 +1,47 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle - Empréstimos</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 15px; color: #334155; display: flex; flex-direction: column; align-items: center; min-height: 95vh; box-sizing: border-box; }
-        .container { max-width: 600px; width: 100%; background: #ffffff; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); flex: 1; box-sizing: border-box; border-top: 5px solid #1e293b; }
-        
-        h2, p.subtitle { text-align: center; }
-        h2 { font-size: 22px; margin-top: 0; color: #1e293b; }
-        p.subtitle { font-size: 14px; color: #64748b; margin-bottom: 22px; }
-        
-        /* Tela de Login / Senha */
-        #telaLogin { text-align: center; padding: 40px 10px; }
-        #telaLogin p { color: #475569; font-weight: 600; margin-bottom: 15px; }
-        #telaLogin input { width: 100%; max-width: 260px; padding: 12px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; margin-bottom: 15px; background-color: #f8fafc; box-sizing: border-box; }
-        #telaLogin input:focus { outline: none; border-color: #0052cc; box-shadow: 0 0 0 3px rgba(0,82,204,0.1); }
-        #telaLogin button { background: linear-gradient(135deg, #0052cc 0%, #004099); color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; display: block; margin: 0 auto; width: 100%; max-width: 260px; box-shadow: 0 4px 12px rgba(0,82,204,0.3); }
-        #telaLogin button:hover { filter: brightness(1.1); }
-        .erro-senha { color: #ef4444; font-size: 13px; margin-top: 12px; display: none; font-weight: 600; }
-
-        /* Indicadores (KPIs) */
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
-        .kpi-card { background: #f8fafc; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; border-left: 4px solid #0052cc; }
-        .kpi-card span { display: block; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
-        .kpi-card strong { font-size: 16px; color: #1e293b; }
-
-        h3 { font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 25px; margin-bottom: 15px; color: #1e293b; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        /* Filtros e Busca */
-        .filter-section { background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .filter-group { margin-bottom: 12px; }
-        .filter-group:last-child { margin-bottom: 0; }
-        label { display: block; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 5px; text-transform: uppercase; }
-        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #fff; }
-        input[type="text"]:focus, select:focus { outline: none; border-color: #0052cc; box-shadow: 0 0 0 3px rgba(0,82,204,0.1); }
-        .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-        /* Cards de Empréstimos (Acordeon) */
-        .emp-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); cursor: pointer; transition: all 0.2s; border-left: 4px solid #10b981; }
-        .emp-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.05); background: #fafafa; }
-        .card-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-        .card-row span:first-child { color: #64748b; font-weight: 600; }
-        .card-row span:last-child { text-align: right; color: #1e293b; font-weight: 500; }
-
-        /* Área de Parcelas Oculta por padrão */
-        .parcelas-container { display: none; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 12px; }
-        .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-        
-        .btn { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; display: block; text-align: center; margin-top: 10px; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: filter 0.2s; }
-        .btn:hover { filter: brightness(1.08); }
-        
-        .loading { text-align: center; font-size: 15px; color: #64748b; padding: 30px; font-weight: 600; }
-        .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-quitado { background: #10b981; color: white; }
-        .hint { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 15px; font-style: italic; }
-        .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Painel Administrativo</h2>
-    <p class="subtitle">Acesso restrito ao gestor.</p>
-
-    <!-- TELA DE LOGIN (PROTEÇÃO POR SENHA) -->
-    <div id="telaLogin">
-        <p>Digite a senha de acesso ao painel:</p>
-        <input type="password" id="txtSenha" placeholder="••••" onkeypress="if(event.key === 'Enter') validarSenha()">
-        <button onclick="validarSenha()">Entrar</button>
-        <div id="msgErro" class="erro-senha">Senha incorreta. Tente novamente.</div>
-    </div>
-
-    <!-- CONTEÚDO DO PAINEL -->
-    <div id="painelConteudo" style="display: none;">
-        <div id="loading" class="loading">Carregando dados da planilha...</div>
-
-        <div id="conteudo" style="display: none;">
-            <!-- Bloco de Indicadores (KPIs) -->
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <span>Total Empréstimos</span>
-                    <strong id="kpiTotalEmp">0</strong>
-                </div>
-                <div class="kpi-card">
-                    <span>Clientes Únicos</span>
-                    <strong id="kpiTotalClientes">0</strong>
-                </div>
-                <div class="kpi-card">
-                    <span>Total Emprestado</span>
-                    <strong id="kpiValorEmprestado">R$ 0,00</strong>
-                </div>
-                <div class="kpi-card">
-                    <span>Em Aberto (Total)</span>
-                    <strong id="kpiValorAberto">R$ 0,00</strong>
-                </div>
-            </div>
-
-            <h3>Lista de Empréstimos</h3>
-
-            <!-- Seção de Busca, Filtros e Ordenação -->
-            <div class="filter-section">
-                <div class="filter-group">
-                    <label for="filtroBusca">Pesquisar Cliente:</label>
-                    <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
-                </div>
-                <div class="filter-row" style="margin-top: 10px;">
-                    <div class="filter-group">
-                        <label for="filtroStatus">Situação:</label>
-                        <select id="filtroStatus" onchange="renderizarPainel()">
-                            <option value="todos">Ambos (Todos)</option>
-                            <option value="aberto">Em Aberto</option>
-                            <option value="quitado">Quitados</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="ordenacao">Ordenação:</label>
-                        <select id="ordenacao" onchange="renderizarPainel()">
-                            <option value="data-desc">Mais Recentes</option>
-                            <option value="data-asc">Mais Antigos</option>
-                            <option value="nome">Cliente</option>
-                            <option value="valor-desc">Maior Valor</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <p class="hint">Toque em um empréstimo para ver as parcelas e cobrar.</p>
-            <div id="listaEmprestimos"></div>
-        </div>
-    </div>
-</div>
-
-<div class="footer">Desenvolvido por EFK Solutions</div>
-
-<script>
-    const SENHA_MESTRE = "1234";
-    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
-    const NOME_BENEFICIARIO = "Seu Nome / Empresa";
-
-    let dadosGlobais = { emprestimos: [], parcelas: [] };
-
-    function validarSenha() {
-        let senhaDigitada = document.getElementById('txtSenha').value;
-        if (senhaDigitada === SENHA_MESTRE) {
-            document.getElementById('telaLogin').style.display = 'none';
-            document.getElementById('painelConteudo').style.display = 'block';
-            carregarPainel();
-        } else {
-            document.getElementById('msgErro').style.display = 'block';
-            document.getElementById('txtSenha').value = "";
-        }
+function doPost(e) {
+  try {
+    var dados = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var abaEmprestimos = ss.getSheetByName("Emprestimos");
+    var abaParcelas = ss.getSheetByName("Parcelas");
+    
+    var dataAtual = new Date();
+    var idEmprestimo = "EMP_" + Math.floor(Math.random() * 100000);
+    
+    abaEmprestimos.appendRow([
+      idEmprestimo,
+      dados.nomeCliente,
+      dados.valorEmprestado,
+      dados.taxaJuros,
+      dados.qtdParcelas,
+      dados.valorTotal,
+      Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")
+    ]);
+    
+    var valorParcela = dados.valorTotal / dados.qtdParcelas;
+    for (var i = 1; i <= dados.qtdParcelas; i++) {
+      var dataVencimento = new Date();
+      dataVencimento.setDate(dataVencimento.getDate() + i); // Vencimento diário (+1 dia por parcela)
+      
+      abaParcelas.appendRow([
+        idEmprestimo,
+        i + "º Dia",
+        valorParcela.toFixed(2),
+        Utilities.formatDate(dataVencimento, Session.getScriptTimeZone(), "dd/MM/yyyy"),
+        "Pendente"
+      ]);
     }
-
-    function formatarData(dataStr) {
-        if (!dataStr) return "";
-        if (dataStr.includes("T")) {
-            let partes = dataStr.split("T")[0].split("-");
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
-        return dataStr;
-    }
-
-    function formatarMoedaBR(valor) {
-        return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    async function carregarPainel() {
-        try {
-            let resposta = await fetch(URL_APPS_SCRIPT);
-            if (!resposta.ok) throw new Error("Erro HTTP: " + resposta.status);
-            dadosGlobais = await resposta.json();
-
-            let emprestimos = dadosGlobais.emprestimos || [];
-            let parcelas = dadosGlobais.parcelas || [];
-
-            let totalEmp = emprestimos.length;
-            let clientesUnicos = new Set(emprestimos.map(e => e.nome)).size;
-            let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorTotal || 0), 0);
-            
-            let valorTotalAberto = parcelas
-                .filter(p => p.status.toLowerCase() === 'pendente')
-                .reduce((acc, p) => acc + parseFloat(p.valor || 0), 0);
-
-            document.getElementById('kpiTotalEmp').innerText = totalEmp;
-            document.getElementById('kpiTotalClientes').innerText = clientesUnicos;
-            document.getElementById('kpiValorEmprestado').innerText = formatarMoedaBR(valorTotalEmprestado);
-            document.getElementById('kpiValorAberto').innerText = formatarMoedaBR(valorTotalAberto);
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('conteudo').style.display = 'block';
-
-            renderizarPainel();
-
-        } catch (erro) {
-            document.getElementById('loading').innerHTML = `<b style="color: red;">Erro ao carregar dados:</b><br>${erro.message}`;
-            console.error(erro);
-        }
-    }
-
-    function renderizarPainel() {
-        let emprestimos = [...(dadosGlobais.emprestimos || [])];
-        let parcelas = dadosGlobais.parcelas || [];
-
-        let termoBusca = document.getElementById('filtroBusca').value.toLowerCase();
-        let statusFiltro = document.getElementById('filtroStatus').value;
-        let tipoOrdenacao = document.getElementById('ordenacao').value;
-
-        if (termoBusca) {
-            emprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(termoBusca));
-        }
-
-        emprestimos = emprestimos.filter(emp => {
-            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-            let temPendente = parcelasDoEmp.some(p => p.status.toLowerCase() === 'pendente');
-
-            if (statusFiltro === 'aberto') return temPendente;
-            if (statusFiltro === 'quitado') return !temPendente && parcelasDoEmp.length > 0;
-            return true; 
-        });
-
-        emprestimos.sort((a, b) => {
-            if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
-            if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
-            if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
-            return 0;
-        });
-
-        let divEmp = document.getElementById('listaEmprestimos');
-        divEmp.innerHTML = "";
-
-        if (emprestimos.length === 0) {
-            divEmp.innerHTML = "<p style='text-align:center;'>Nenhum empréstimo encontrado com esses filtros.</p>";
-            return;
-        }
-
-        emprestimos.forEach(emp => {
-            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-            let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
-
-            let card = document.createElement('div');
-            card.className = 'emp-card';
-            
-            let htmlParcelas = '';
-            parcelasDoEmp.forEach(parc => {
-                let pStatus = parc.status.toLowerCase();
-                let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
-                let valorFormatado = formatarMoedaBR(parc.valor);
-
-                let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}ª) no valor de *${valorFormatado}* com vencimento em *${parc.vencimento}*.\n\n` +
-                               `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
-                               `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
-
-                let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-
-                htmlParcelas += `
-                    <div class="parcela-item">
-                        <div class="card-row"><span>Parcela:</span> <strong>${parc.numeroParcela}ª</strong></div>
-                        <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
-                        <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
-                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                        <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
-                    </div>
-                `;
-            });
-
-            let statusGeralBadge = todasQuitadas 
-                ? '<span class="badge badge-quitado">Quitado</span>' 
-                : '<span class="badge">Em Aberto</span>';
-
-            card.innerHTML = `
-                <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
-                <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
-                <div class="card-row"><span>Valor Total:</span> <span>${formatarMoedaBR(emp.valorTotal)}</span></div>
-                <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
-                <div class="card-row"><span>Parcelas:</span> <span>${emp.qtdParcelas}x (Toque para ver)</span></div>
-                <div class="parcelas-container">
-                    ${htmlParcelas || '<p>Nenhuma parcela encontrada.</p>'}
-                </div>
-            `;
-
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') return;
-                let containerParcelas = card.querySelector('.parcelas-container');
-                containerParcelas.style.display = containerParcelas.style.display === 'block' ? 'none' : 'block';
-            });
-
-            divEmp.appendChild(card);
-        });
-    }
-</script>
-
-</body>
-</html>
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "sucesso",
+      "mensagem": "Empréstimo registrado com sucesso!",
+      "id": idEmprestimo
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (erro) {
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "erro",
+      "mensagem": erro.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
