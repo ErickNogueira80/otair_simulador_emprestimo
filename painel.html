@@ -16,6 +16,14 @@
         .kpi-card span { display: block; font-size: 12px; color: #555; font-weight: bold; margin-bottom: 4px; }
         .kpi-card strong { font-size: 16px; color: #007bff; }
 
+        /* Filtros e Busca */
+        .filter-section { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e1e4e8; }
+        .filter-group { margin-bottom: 10px; }
+        .filter-group:last-child { margin-bottom: 0; }
+        label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 3px; }
+        input[type="text"], select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
+        .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
         h3 { font-size: 16px; border-bottom: 2px solid #007bff; padding-bottom: 5px; margin-top: 25px; color: #007bff; }
         
         /* Cards de Empréstimos (Acordeon) */
@@ -34,6 +42,7 @@
         
         .loading { text-align: center; font-size: 15px; color: #666; padding: 30px; }
         .badge { background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-quitado { background: #28a745; color: white; }
         .hint { font-size: 12px; color: #888; text-align: center; margin-bottom: 15px; font-style: italic; }
     </style>
 </head>
@@ -66,6 +75,33 @@
             </div>
         </div>
 
+        <!-- Seção de Busca, Filtros e Ordenação -->
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="filtroBusca">Pesquisar Cliente:</label>
+                <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
+            </div>
+            <div class="filter-row" style="margin-top: 10px;">
+                <div class="filter-group">
+                    <label for="filtroStatus">Status:</label>
+                    <select id="filtroStatus" onchange="renderizarPainel()">
+                        <option value="todos">Ambos (Todos)</option>
+                        <option value="aberto">Em Aberto</option>
+                        <option value="quitado">Quitados</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="ordenacao">Ordenar por:</label>
+                    <select id="ordenacao" onchange="renderizarPainel()">
+                        <option value="data-desc">Mais Recentes</option>
+                        <option value="data-asc">Mais Antigos</option>
+                        <option value="nome">Nome (A-Z)</option>
+                        <option value="valor-desc">Maior Valor</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <h3>Lista de Empréstimos</h3>
         <p class="hint">Toque em um empréstimo para ver as parcelas e cobrar.</p>
         <div id="listaEmprestimos"></div>
@@ -73,11 +109,12 @@
 </div>
 
 <script>
-    // URL DO SEU APPS SCRIPT JÁ ATUALIZADA
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
     
     const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
     const NOME_BENEFICIARIO = "Seu Nome / Empresa";
+
+    let dadosGlobais = { emprestimos: [], parcelas: [] };
 
     function formatarData(dataStr) {
         if (!dataStr) return "";
@@ -96,11 +133,12 @@
         try {
             let resposta = await fetch(URL_APPS_SCRIPT);
             if (!resposta.ok) throw new Error("Erro HTTP: " + resposta.status);
-            let dados = await resposta.json();
+            dadosGlobais = await resposta.json();
 
-            let emprestimos = dados.emprestimos || [];
-            let parcelas = dados.parcelas || [];
+            let emprestimos = dadosGlobais.emprestimos || [];
+            let parcelas = dadosGlobais.parcelas || [];
 
+            // 1. Cálculo dos Indicadores Globais (KPIs)
             let totalEmp = emprestimos.length;
             let clientesUnicos = new Set(emprestimos.map(e => e.nome)).size;
             let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorTotal || 0), 0);
@@ -114,64 +152,110 @@
             document.getElementById('kpiValorEmprestado').innerText = formatarMoeda(valorTotalEmprestado);
             document.getElementById('kpiValorAberto').innerText = formatarMoeda(valorTotalAberto);
 
-            let divEmp = document.getElementById('listaEmprestimos');
-            divEmp.innerHTML = "";
-
-            if (totalEmp === 0) {
-                divEmp.innerHTML = "<p>Nenhum empréstimo cadastrado ainda.</p>";
-            } else {
-                emprestimos.forEach(emp => {
-                    let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-
-                    let card = document.createElement('div');
-                    card.className = 'emp-card';
-                    
-                    let htmlParcelas = '';
-                    parcelasDoEmp.forEach(parc => {
-                        let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}ª) no valor de *R$ ${parc.valor}* com vencimento em *${parc.vencimento}*.\n\n` +
-                                       `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
-                                       `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
-
-                        let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-
-                        htmlParcelas += `
-                            <div class="parcela-item">
-                                <div class="card-row"><span>Parcela:</span> <strong>${parc.numeroParcela}ª</strong></div>
-                                <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
-                                <div class="card-row"><span>Valor:</span> <strong style="color: #007bff;">${formatarMoeda(parc.valor)}</strong></div>
-                                <div class="card-row"><span>Status:</span> <span class="badge">${parc.status}</span></div>
-                                <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
-                            </div>
-                        `;
-                    });
-
-                    card.innerHTML = `
-                        <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
-                        <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
-                        <div class="card-row"><span>Valor Total:</span> <span>${formatarMoeda(emp.valorTotal)}</span></div>
-                        <div class="card-row"><span>Qtd Parcelas:</span> <span>${emp.qtdParcelas}x (Toque para ver)</span></div>
-                        <div class="parcelas-container">
-                            ${htmlParcelas || '<p>Nenhuma parcela encontrada.</p>'}
-                        </div>
-                    `;
-
-                    card.addEventListener('click', function(e) {
-                        if (e.target.tagName === 'A') return;
-                        let containerParcelas = card.querySelector('.parcelas-container');
-                        containerParcelas.style.display = containerParcelas.style.display === 'block' ? 'none' : 'block';
-                    });
-
-                    divEmp.appendChild(card);
-                });
-            }
-
             document.getElementById('loading').style.display = 'none';
             document.getElementById('conteudo').style.display = 'block';
+
+            renderizarPainel();
 
         } catch (erro) {
             document.getElementById('loading').innerHTML = `<b style="color: red;">Erro ao carregar dados:</b><br>${erro.message}`;
             console.error(erro);
         }
+    }
+
+    function renderizarPainel() {
+        let emprestimos = [...(dadosGlobais.emprestimos || [])];
+        let parcelas = dadosGlobais.parcelas || [];
+
+        let termoBusca = document.getElementById('filtroBusca').value.toLowerCase();
+        let statusFiltro = document.getElementById('filtroStatus').value;
+        let tipoOrdenacao = document.getElementById('ordenacao').value;
+
+        // 1. Filtragem por Nome
+        if (termoBusca) {
+            emprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(termoBusca));
+        }
+
+        // 2. Filtragem por Status (Aberto / Quitado)
+        emprestimos = emprestimos.filter(emp => {
+            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
+            let temPendente = parcelasDoEmp.some(p => p.status.toLowerCase() === 'pendente');
+
+            if (statusFiltro === 'aberto') return temPendente;
+            if (statusFiltro === 'quitado') return !temPendente && parcelasDoEmp.length > 0;
+            return true; // Ambos
+        });
+
+        // 3. Ordenação
+        emprestimos.sort((a, b) => {
+            if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
+            if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
+            if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
+            return 0;
+        });
+
+        // 4. Renderização na Tela
+        let divEmp = document.getElementById('listaEmprestimos');
+        divEmp.innerHTML = "";
+
+        if (emprestimos.length === 0) {
+            divEmp.innerHTML = "<p>Nenhum empréstimo encontrado com esses filtros.</p>";
+            return;
+        }
+
+        emprestimos.forEach(emp => {
+            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
+            let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
+
+            let card = document.createElement('div');
+            card.className = 'emp-card';
+            
+            let htmlParcelas = '';
+            parcelasDoEmp.forEach(parc => {
+                let pStatus = parc.status.toLowerCase();
+                let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
+
+                let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}ª) no valor de *R$ ${parc.valor}* com vencimento em *${parc.vencimento}*.\n\n` +
+                               `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
+                               `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
+
+                let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+
+                htmlParcelas += `
+                    <div class="parcela-item">
+                        <div class="card-row"><span>Parcela:</span> <strong>${parc.numeroParcela}ª</strong></div>
+                        <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
+                        <div class="card-row"><span>Valor:</span> <strong style="color: #007bff;">${formatarMoeda(parc.valor)}</strong></div>
+                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
+                        <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
+                    </div>
+                `;
+            });
+
+            let statusGeralBadge = todasQuitadas 
+                ? '<span class="badge badge-quitado">Quitado</span>' 
+                : '<span class="badge">Em Aberto</span>';
+
+            card.innerHTML = `
+                <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
+                <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
+                <div class="card-row"><span>Valor Total:</span> <span>${formatarMoeda(emp.valorTotal)}</span></div>
+                <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
+                <div class="card-row"><span>Parcelas:</span> <span>${emp.qtdParcelas}x (Toque para ver)</span></div>
+                <div class="parcelas-container">
+                    ${htmlParcelas || '<p>Nenhuma parcela encontrada.</p>'}
+                </div>
+            `;
+
+            card.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') return;
+                let containerParcelas = card.querySelector('.parcelas-container');
+                containerParcelas.style.display = containerParcelas.style.display === 'block' ? 'none' : 'block';
+            });
+
+            divEmp.appendChild(card);
+        });
     }
 
     carregarPainel();
