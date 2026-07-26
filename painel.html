@@ -108,7 +108,7 @@
                 </div>
                 <div class="filter-row" style="margin-top: 10px;">
                     <div class="filter-group">
-                        <label for="filtroStatus">Situação Empréstimo:</label>
+                        <label for="filtroStatus">Situação:</label>
                         <select id="filtroStatus" onchange="renderizarPainel()">
                             <option value="todos">Ambos (Todos)</option>
                             <option value="aberto">Em Aberto</option>
@@ -116,7 +116,7 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="ordenacao">Ordenar por:</label>
+                        <label for="ordenacao">Ordenação:</label>
                         <select id="ordenacao" onchange="renderizarPainel()">
                             <option value="data-desc">Mais Recentes</option>
                             <option value="data-asc">Mais Antigos</option>
@@ -226,7 +226,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
             return 0;
         });
 
