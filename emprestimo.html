@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Empréstimo</title>
+    <title>Simulador de Empréstimo Diário</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 95vh; flex-direction: column; box-sizing: border-box; }
         .container { background: #ffffff; padding: 30px 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); width: 100%; max-width: 400px; box-sizing: border-box; border-top: 5px solid #0052cc; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="container">
-    <h2>Simulador de Empréstimo</h2>
+    <h2>Simulador de Empréstimo Diário</h2>
     
     <div class="form-group">
         <label for="nome">Seu Nome:</label>
@@ -43,26 +43,20 @@
     </div>
 
     <div class="form-group">
-        <label for="parcelas">Quantidade de Parcelas:</label>
+        <label for="parcelas">Quantidade de Dias (Parcelas):</label>
         <select id="parcelas" onchange="calcular()">
-            <option value="1">1x (À vista)</option>
-            <option value="2">2x</option>
-            <option value="3">3x</option>
-            <option value="4">4x</option>
-            <option value="5">5x</option>
-            <option value="6">6x</option>
-            <option value="7">7x</option>
-            <option value="8">8x</option>
-            <option value="9">9x</option>
-            <option value="10">10x</option>
-            <option value="11">11x</option>
-            <option value="12">12x</option>
+            <!-- Gera de 1 a 30 dias automaticamente -->
+            <script>
+                for(let i=1; i<=30; i++) {
+                    document.write(`<option value="${i}">${i} ${i === 1 ? 'Dia' : 'Dias'}</option>`);
+                }
+            </script>
         </select>
     </div>
 
     <div class="resultado">
-        <p><span>Taxa de Juros:</span> <strong id="txtTaxa">10% a.m.</strong></p>
-        <p><span>Valor da Parcela:</span> <strong id="txtParcela">R$ 0,00</strong></p>
+        <p><span>Taxa Total (Período):</span> <strong id="txtTaxa">10%</strong></p>
+        <p><span>Valor da Parcela Diária:</span> <strong id="txtParcela">R$ 0,00</strong></p>
         <p class="total-destaque"><span>Total a Pagar:</span> <strong id="txtTotal">R$ 0,00</strong></p>
     </div>
 
@@ -74,7 +68,7 @@
 
 <script>
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    const TAXA_JUROS_MENSAL = 0.10;
+    const TAXA_JUROS_TOTAL = 0.10; // 10% no ciclo total (ou ajuste conforme a regra diária desejada)
 
     function formatarMoedaBR(valor) {
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -82,7 +76,7 @@
 
     function calcular() {
         let valor = parseFloat(document.getElementById('valor').value) || 0;
-        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+        let qtdDias = parseInt(document.getElementById('parcelas').value);
 
         if (valor <= 0) {
             document.getElementById('txtParcela').innerText = "R$ 0,00";
@@ -90,17 +84,17 @@
             return;
         }
 
-        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
-        let valorParcela = totalJuros / qtdParcelas;
+        let totalJuros = valor * (1 + TAXA_JUROS_TOTAL);
+        let valorParcelaDiaria = totalJuros / qtdDias;
 
-        document.getElementById('txtParcela').innerText = formatarMoedaBR(valorParcela);
+        document.getElementById('txtParcela').innerText = formatarMoedaBR(valorParcelaDiaria);
         document.getElementById('txtTotal').innerText = formatarMoedaBR(totalJuros);
     }
 
     async function solicitarEmprestimo() {
         let nome = document.getElementById('nome').value.trim();
         let valor = parseFloat(document.getElementById('valor').value) || 0;
-        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+        let qtdDias = parseInt(document.getElementById('parcelas').value);
 
         if (!nome) {
             alert("Por favor, preencha o seu nome.");
@@ -111,14 +105,14 @@
             return;
         }
 
-        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
-        let valorParcela = totalJuros / qtdParcelas;
+        let totalJuros = valor * (1 + TAXA_JUROS_TOTAL);
+        let valorParcelaDiaria = totalJuros / qtdDias;
 
         let dadosEnvio = {
             nomeCliente: nome,
             valorEmprestado: valor,
-            taxaJuros: (TAXA_JUROS_MENSAL * 100) + "%",
-            qtdParcelas: qtdParcelas,
+            taxaJuros: (TAXA_JUROS_TOTAL * 100) + "%",
+            qtdParcelas: qtdDias,
             valorTotal: totalJuros.toFixed(2)
         };
 
@@ -138,9 +132,9 @@
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             let seuNumeroWhatsApp = "5511982778075"; 
-            let mensagem = `Olá! Meu nome é *${nome}*.\n\nAcabei de simular um empréstimo:\n` +
+            let mensagem = `Olá! Meu nome é *${nome}*.\n\nAcabei de simular um empréstimo diário:\n` +
                            `- Valor: ${formatarMoedaBR(valor)}\n` +
-                           `- Parcelas: ${qtdParcelas}x de ${formatarMoedaBR(valorParcela)}\n` +
+                           `- Prazo: ${qtdDias} dias (Parcelas diárias de ${formatarMoedaBR(valorParcelaDiaria)})\n` +
                            `- Total com juros: ${formatarMoedaBR(totalJuros)}\n\n` +
                            `Gostaria de prosseguir com a solicitação!`;
 
