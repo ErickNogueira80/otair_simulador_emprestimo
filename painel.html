@@ -48,6 +48,7 @@
         .btn:hover { filter: brightness(1.08); }
         
         .btn-pix { background: linear-gradient(135deg, #0284c7 0%, #0369a1); box-shadow: 0 2px 6px rgba(2,132,199,0.3); }
+        .btn-baixa { background: linear-gradient(135deg, #475569 0%, #334155); box-shadow: 0 2px 6px rgba(71,85,105,0.3); margin-top: 6px; }
 
         .loading { text-align: center; font-size: 15px; color: #64748b; padding: 30px; font-weight: 600; }
         .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -120,7 +121,7 @@
                 </div>
             </div>
 
-            <p class="hint">Toque em um empréstimo para ver as parcelas diárias e cobrar.</p>
+            <p class="hint">Toque em um empréstimo para gerenciar as parcelas e dar baixa.</p>
             <div id="listaEmprestimos"></div>
         </div>
     </div>
@@ -164,7 +165,6 @@
         return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    // Gerador de Pix Copia e Cola (Payload BR Code)
     function gerarPayloadPix(chave, nome, cidade, valor, identificador) {
         function formatoId(id, valorCampo) {
             let tamanho = String(valorCampo.length).padStart(2, '0');
@@ -187,7 +187,6 @@
 
         let payloadSemCrc = formatoId('00', '01') + merchantAccount + mcc + moeda + valorStr + pais + beneficiario + cidadeBeneficiario + additionalData + '6304';
         
-        // Cálculo CRC16
         let polinomio = 0x1021;
         let resultado = 0xFFFF;
         for (let i = 0; i < payloadSemCrc.length; i++) {
@@ -204,15 +203,31 @@
         return payloadSemCrc + crc16;
     }
 
-    // Função para copiar o Pix para a área de transferência
     function copiarPixCopiaECola(chave, nome, cidade, valor, idParcela) {
         let payload = gerarPayloadPix(chave, nome, cidade, valor, idParcela);
         
         navigator.clipboard.writeText(payload).then(() => {
-            alert("✅ Código Pix Copia e Cola copiado com sucesso!\n\nCole no aplicativo do seu banco para receber.");
+            alert("✅ Pix Copia e Cola copiado com sucesso!\n\nCole no aplicativo do seu banco para receber.");
         }).catch(err => {
             prompt("Copie o código abaixo:", payload);
         });
+    }
+
+    async function darBaixa(idEmprestimo, numeroParcela) {
+        if (!confirm(`Deseja realmente dar baixa (marcar como PAGO) na parcela ${numeroParcela}?`)) return;
+
+        try {
+            let urlBaixa = `${URL_APPS_SCRIPT}?acao=darBaixa&idEmprestimo=${idEmprestimo}&numeroParcela=${encodeURIComponent(numeroParcela)}`;
+            
+            // Faz a requisição para atualizar na planilha
+            await fetch(urlBaixa);
+
+            alert("✅ Parcela dada como paga com sucesso!");
+            carregarPainel(); // Recarrega os dados atualizados na tela
+        } catch (erro) {
+            alert("Erro ao dar baixa na parcela. Tente novamente.");
+            console.error(erro);
+        }
     }
 
     async function carregarPainel() {
@@ -273,7 +288,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
             return 0;
         });
 
@@ -306,18 +321,25 @@
                 let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
                 let identificadorUnico = `${emp.id}_${parc.numeroParcela}`.replace(/[^a-zA-Z0-9]/g, '');
 
+                let botoesAcao = pStatus === 'pendente' 
+                    ? `
+                        <button class="btn btn-pix" onclick="copiarPixCopiaECola('${CHAVE_PIX}', '${NOME_BENEFICIARIO}', '${CIDADE_BENEFICIARIO}', ${parc.valor}, '${identificadorUnico}')">
+                            📋 Copiar Pix Copia e Cola (R$ ${parc.valor})
+                        </button>
+                        <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
+                        <button class="btn btn-baixa" onclick="darBaixa('${emp.id}', '${parc.numeroParcela}')">
+                            ✔️ Dar Baixa (Marcar como Pago)
+                        </button>
+                      ` 
+                    : `<p style="text-align:center; color:#10b981; font-weight:bold; margin-top:8px;">✔ Parcela Paga</p>`;
+
                 htmlParcelas += `
                     <div class="parcela-item">
                         <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
                         <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
                         <div class="card-row"><span>Valor Diário:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
                         <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                        
-                        <button class="btn btn-pix" onclick="copiarPixCopiaECola('${CHAVE_PIX}', '${NOME_BENEFICIARIO}', '${CIDADE_BENEFICIARIO}', ${parc.valor}, '${identificadorUnico}')">
-                            📋 Copiar Pix Copia e Cola (R$ ${parc.valor})
-                        </button>
-                        
-                        <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
+                        ${botoesAcao}
                     </div>
                 `;
             });
