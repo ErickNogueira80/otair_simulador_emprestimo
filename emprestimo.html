@@ -1,265 +1,305 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle - Empréstimos</title>
+
+    <title>Simulador de Empréstimo</title>
+
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { font-size: 20px; margin-top: 0; color: #222; }
-        p { font-size: 14px; color: #666; }
-        
-        /* Indicadores (KPIs) */
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .kpi-card { background: #eef2f7; padding: 12px; border-radius: 8px; text-align: center; }
-        .kpi-card span { display: block; font-size: 12px; color: #555; font-weight: bold; margin-bottom: 4px; }
-        .kpi-card strong { font-size: 16px; color: #007bff; }
 
-        /* Filtros e Busca */
-        .filter-section { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e1e4e8; }
-        .filter-group { margin-bottom: 10px; }
-        .filter-group:last-child { margin-bottom: 0; }
-        label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 3px; }
-        input[type="text"], select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
-        .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
 
-        h3 { font-size: 16px; border-bottom: 2px solid #007bff; padding-bottom: 5px; margin-top: 25px; color: #007bff; }
-        
-        /* Cards de Empréstimos (Acordeon) */
-        .emp-card { background: #fff; border: 1px solid #e1e4e8; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer; transition: background 0.2s; }
-        .emp-card:hover { background: #f8f9fa; }
-        .card-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
-        .card-row span:first-child { color: #666; font-weight: bold; }
-        .card-row span:last-child { text-align: right; color: #111; }
+        .container { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
 
-        /* Área de Parcelas Oculta por padrão */
-        .parcelas-container { display: none; margin-top: 12px; border-top: 1px dashed #ccc; padding-top: 10px; }
-        .parcela-item { background: #fdfdfd; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
-        
-        .btn { background: #25d366; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; display: block; text-align: center; margin-top: 8px; font-size: 13px; }
-        .btn:hover { background: #1ebe5d; }
-        
-        .loading { text-align: center; font-size: 15px; color: #666; padding: 30px; }
-        .badge { background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .badge-quitado { background: #28a745; color: white; }
-        .hint { font-size: 12px; color: #888; text-align: center; margin-bottom: 15px; font-style: italic; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+
+        .form-group { margin-bottom: 15px; }
+
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+
+        .resultado { background: #eef2f7; padding: 15px; border-radius: 5px; margin-top: 20px; margin-bottom: 20px; }
+
+        .resultado p { margin: 8px 0; color: #333; }
+
+        button { width: 100%; background: #25d366; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+
+        button:hover { background: #1ebe5d; }
+
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .loading { text-align: center; color: #666; font-size: 14px; display: none; margin-top: 10px; }
+
     </style>
+
 </head>
+
 <body>
 
+
+
 <div class="container">
-    <h2>Painel Administrativo</h2>
-    <p>Acompanhe o resumo da carteira e gerencie os empréstimos.</p>
 
-    <div id="loading" class="loading">Carregando dados da planilha...</div>
+    <h2>Simulador de Empréstimo</h2>
 
-    <div id="conteudo" style="display: none;">
-        <!-- Bloco de Indicadores (KPIs) -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <span>Total de Empréstimos</span>
-                <strong id="kpiTotalEmp">0</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Clientes Únicos</span>
-                <strong id="kpiTotalClientes">0</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Valor Emprestado</span>
-                <strong id="kpiValorEmprestado">R$ 0,00</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Em Aberto (Total)</span>
-                <strong id="kpiValorAberto">R$ 0,00</strong>
-            </div>
-        </div>
+    
 
-        <!-- Seção de Busca, Filtros e Ordenação -->
-        <div class="filter-section">
-            <div class="filter-group">
-                <label for="filtroBusca">Pesquisar Cliente:</label>
-                <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
-            </div>
-            <div class="filter-row" style="margin-top: 10px;">
-                <div class="filter-group">
-                    <label for="filtroStatus">Status:</label>
-                    <select id="filtroStatus" onchange="renderizarPainel()">
-                        <option value="todos">Ambos (Todos)</option>
-                        <option value="aberto">Em Aberto</option>
-                        <option value="quitado">Quitados</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="ordenacao">Ordenar por:</label>
-                    <select id="ordenacao" onchange="renderizarPainel()">
-                        <option value="data-desc">Mais Recentes</option>
-                        <option value="data-asc">Mais Antigos</option>
-                        <option value="nome">Nome (A-Z)</option>
-                        <option value="valor-desc">Maior Valor</option>
-                    </select>
-                </div>
-            </div>
-        </div>
+    <div class="form-group">
 
-        <h3>Lista de Empréstimos</h3>
-        <p class="hint">Toque em um empréstimo para ver as parcelas e cobrar.</p>
-        <div id="listaEmprestimos"></div>
+        <label for="nome">Seu Nome:</label>
+
+        <input type="text" id="nome" placeholder="Digite seu nome completo">
+
     </div>
+
+
+
+    <div class="form-group">
+
+        <label for="valor">Valor Desejado (R$):</label>
+
+        <input type="number" id="valor" placeholder="Ex: 500" oninput="calcular()">
+
+    </div>
+
+
+
+    <div class="form-group">
+
+        <label for="parcelas">Quantidade de Parcelas:</label>
+
+        <select id="parcelas" onchange="calcular()">
+
+            <option value="1">1x (À vista)</option>
+
+            <option value="2">2x</option>
+
+            <option value="3">3x</option>
+
+            <option value="4">4x</option>
+
+            <option value="5">5x</option>
+
+            <option value="6">6x</option>
+
+            <option value="9">9x</option>
+
+            <option value="12">12x</option>
+
+        </select>
+
+    </div>
+
+
+
+    <div class="resultado">
+
+        <p><strong>Taxa de Juros:</strong> <span id="txtTaxa">10%</span> ao mês</p>
+
+        <p><strong>Valor da Parcela:</strong> <span id="txtParcela">R$ 0,00</span></p>
+
+        <p><strong>Total a Pagar:</strong> <span id="txtTotal">R$ 0,00</span></p>
+
+    </div>
+
+
+
+    <button id="btnSolicitar" onclick="solicitarEmprestimo()">Solicitar via WhatsApp</button>
+
+    <div id="loadingMsg" class="loading">Salvando pedido e abrindo WhatsApp...</div>
+
 </div>
 
+
+
 <script>
+
+    // COLE SUA URL DO APPS SCRIPT ABAIXO ENTRE AS ASPAS
+
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    
-    const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
-    const NOME_BENEFICIARIO = "Seu Nome / Empresa";
 
-    let dadosGlobais = { emprestimos: [], parcelas: [] };
+        
 
-    function formatarData(dataStr) {
-        if (!dataStr) return "";
-        if (dataStr.includes("T")) {
-            let partes = dataStr.split("T")[0].split("-");
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    const TAXA_JUROS_MENSAL = 0.10; // Exemplo: 10% ao mês (Juros Simples ou Tabela Price simplificada)
+
+
+
+    function calcular() {
+
+        let valor = parseFloat(document.getElementById('valor').value) || 0;
+
+        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+
+
+
+        if (valor <= 0) {
+
+            document.getElementById('txtParcela').innerText = "R$ 0,00";
+
+            document.getElementById('txtTotal').innerText = "R$ 0,00";
+
+            return;
+
         }
-        return dataStr;
+
+
+
+        // Cálculo simples de juros (Valor + (Valor * Taxa * Meses))
+
+        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
+
+        let valorParcela = totalJuros / qtdParcelas;
+
+
+
+        document.getElementById('txtParcela').innerText = "R$ " + valorParcela.toFixed(2).replace('.', ',');
+
+        document.getElementById('txtTotal').innerText = "R$ " + totalJuros.toFixed(2).replace('.', ',');
+
     }
 
-    function formatarMoeda(valor) {
-        return "R$ " + parseFloat(valor || 0).toFixed(2).replace('.', ',');
-    }
 
-    async function carregarPainel() {
+
+    async function solicitarEmprestimo() {
+
+        let nome = document.getElementById('nome').value.trim();
+
+        let valor = parseFloat(document.getElementById('valor').value) || 0;
+
+        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+
+
+
+        if (!nome) {
+
+            alert("Por favor, preencha o seu nome.");
+
+            return;
+
+        }
+
+        if (valor <= 0) {
+
+            alert("Por favor, informe um valor válido para o empréstimo.");
+
+            return;
+
+        }
+
+
+
+        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
+
+        let valorParcela = totalJuros / qtdParcelas;
+
+
+
+        let dadosEnvio = {
+
+            nomeCliente: nome,
+
+            valorEmprestado: valor,
+
+            taxaJuros: (TAXA_JUROS_MENSAL * 100) + "%",
+
+            qtdParcelas: qtdParcelas,
+
+            valorTotal: totalJuros.toFixed(2)
+
+        };
+
+
+
+        // Trava os botões e mostra carregamento
+
+        let btn = document.getElementById('btnSolicitar');
+
+        btn.disabled = true;
+
+        btn.innerText = "Salvando na planilha...";
+
+        document.getElementById('loadingMsg').style.display = 'block';
+
+
+
         try {
-            let resposta = await fetch(URL_APPS_SCRIPT);
-            if (!resposta.ok) throw new Error("Erro HTTP: " + resposta.status);
-            dadosGlobais = await resposta.json();
 
-            let emprestimos = dadosGlobais.emprestimos || [];
-            let parcelas = dadosGlobais.parcelas || [];
+            // Envia os dados para a planilha e AGUARDA a resposta
 
-            // 1. Cálculo dos Indicadores Globais (KPIs)
-            let totalEmp = emprestimos.length;
-            let clientesUnicos = new Set(emprestimos.map(e => e.nome)).size;
-            let valorTotalEmprestado = emprestimos.reduce((acc, e) => acc + parseFloat(e.valorTotal || 0), 0);
-            
-            let valorTotalAberto = parcelas
-                .filter(p => p.status.toLowerCase() === 'pendente')
-                .reduce((acc, p) => acc + parseFloat(p.valor || 0), 0);
+            await fetch(URL_APPS_SCRIPT, {
 
-            document.getElementById('kpiTotalEmp').innerText = totalEmp;
-            document.getElementById('kpiTotalClientes').innerText = clientesUnicos;
-            document.getElementById('kpiValorEmprestado').innerText = formatarMoeda(valorTotalEmprestado);
-            document.getElementById('kpiValorAberto').innerText = formatarMoeda(valorTotalAberto);
+                method: 'POST',
 
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('conteudo').style.display = 'block';
+                mode: 'no-cors', 
 
-            renderizarPainel();
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify(dadosEnvio)
+
+            });
+
+
+
+            // Pequena pausa de segurança para garantir a gravação no Google Sheets
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+
+
+            // Substitua pelo seu número de WhatsApp com DDD (ex: 5511982778075)
+
+            let seuNumeroWhatsApp = "5511982778075"; 
+
+            let mensagem = `Olá! Meu nome é *${nome}*.\n\nAcabei de simular um empréstimo:\n` +
+
+                           `- Valor: R$ ${valor.toFixed(2)}\n` +
+
+                           `- Parcelas: ${qtdParcelas}x de R$ ${valorParcela.toFixed(2)}\n` +
+
+                           `- Total com juros: R$ ${totalJuros.toFixed(2)}\n\n` +
+
+                           `Gostaria de prosseguir com a solicitação!`;
+
+
+
+            let urlWhatsApp = `https://wa.me/${seuNumeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+
+
+
+            // Redireciona para o WhatsApp após salvar
+
+            window.location.href = urlWhatsApp;
+
+
 
         } catch (erro) {
-            document.getElementById('loading').innerHTML = `<b style="color: red;">Erro ao carregar dados:</b><br>${erro.message}`;
+
+            alert("Houve um erro ao registrar na planilha, mas você ainda pode enviar pelo WhatsApp.");
+
             console.error(erro);
+
+        } finally {
+
+            btn.disabled = false;
+
+            btn.innerText = "Solicitar via WhatsApp";
+
+            document.getElementById('loadingMsg').style.display = 'none';
+
         }
+
     }
 
-    function renderizarPainel() {
-        let emprestimos = [...(dadosGlobais.emprestimos || [])];
-        let parcelas = dadosGlobais.parcelas || [];
-
-        let termoBusca = document.getElementById('filtroBusca').value.toLowerCase();
-        let statusFiltro = document.getElementById('filtroStatus').value;
-        let tipoOrdenacao = document.getElementById('ordenacao').value;
-
-        // 1. Filtragem por Nome
-        if (termoBusca) {
-            emprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(termoBusca));
-        }
-
-        // 2. Filtragem por Status (Aberto / Quitado)
-        emprestimos = emprestimos.filter(emp => {
-            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-            let temPendente = parcelasDoEmp.some(p => p.status.toLowerCase() === 'pendente');
-
-            if (statusFiltro === 'aberto') return temPendente;
-            if (statusFiltro === 'quitado') return !temPendente && parcelasDoEmp.length > 0;
-            return true; // Ambos
-        });
-
-        // 3. Ordenação
-        emprestimos.sort((a, b) => {
-            if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
-            if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
-            if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
-            return 0;
-        });
-
-        // 4. Renderização na Tela
-        let divEmp = document.getElementById('listaEmprestimos');
-        divEmp.innerHTML = "";
-
-        if (emprestimos.length === 0) {
-            divEmp.innerHTML = "<p>Nenhum empréstimo encontrado com esses filtros.</p>";
-            return;
-        }
-
-        emprestimos.forEach(emp => {
-            let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
-            let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
-
-            let card = document.createElement('div');
-            card.className = 'emp-card';
-            
-            let htmlParcelas = '';
-            parcelasDoEmp.forEach(parc => {
-                let pStatus = parc.status.toLowerCase();
-                let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
-
-                let mensagem = `Olá, *${emp.nome}*! Passando para lembrar do vencimento da sua parcela (${parc.numeroParcela}ª) no valor de *R$ ${parc.valor}* com vencimento em *${parc.vencimento}*.\n\n` +
-                               `Chave Pix para pagamento: \`${CHAVE_PIX}\` (${NOME_BENEFICIARIO}).\n\n` +
-                               `Por favor, envie o comprovante por aqui após o pagamento. Obrigado!`;
-
-                let linkZap = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-
-                htmlParcelas += `
-                    <div class="parcela-item">
-                        <div class="card-row"><span>Parcela:</span> <strong>${parc.numeroParcela}ª</strong></div>
-                        <div class="card-row"><span>Vencimento:</span> <span>${parc.vencimento}</span></div>
-                        <div class="card-row"><span>Valor:</span> <strong style="color: #007bff;">${formatarMoeda(parc.valor)}</strong></div>
-                        <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
-                        <a href="${linkZap}" target="_blank" class="btn">📲 Cobrar via WhatsApp / Pix</a>
-                    </div>
-                `;
-            });
-
-            let statusGeralBadge = todasQuitadas 
-                ? '<span class="badge badge-quitado">Quitado</span>' 
-                : '<span class="badge">Em Aberto</span>';
-
-            card.innerHTML = `
-                <div class="card-row"><span>Cliente:</span> <strong>${emp.nome}</strong></div>
-                <div class="card-row"><span>Data:</span> <span>${formatarData(emp.data)}</span></div>
-                <div class="card-row"><span>Valor Total:</span> <span>${formatarMoeda(emp.valorTotal)}</span></div>
-                <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
-                <div class="card-row"><span>Parcelas:</span> <span>${emp.qtdParcelas}x (Toque para ver)</span></div>
-                <div class="parcelas-container">
-                    ${htmlParcelas || '<p>Nenhuma parcela encontrada.</p>'}
-                </div>
-            `;
-
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') return;
-                let containerParcelas = card.querySelector('.parcelas-container');
-                containerParcelas.style.display = containerParcelas.style.display === 'block' ? 'none' : 'block';
-            });
-
-            divEmp.appendChild(card);
-        });
-    }
-
-    carregarPainel();
 </script>
 
+
+
 </body>
+
 </html>
