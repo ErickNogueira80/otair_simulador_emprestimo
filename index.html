@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Empréstimos - Central de Acesso</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; color: #334155; display: flex; flex-direction: column; align-items: center; min-height: 95vh; box-sizing: border-box; justify-content: center; }
+        .container { max-width: 650px; width: 100%; background: #ffffff; padding: 35px 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); box-sizing: border-box; border-top: 6px solid #1e293b; }
+        
+        h2 { text-align: center; color: #1e293b; font-size: 24px; margin-top: 0; margin-bottom: 8px; }
+        p.subtitle { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 30px; }
+        
+        .card-menu { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 18px; display: flex; flex-direction: column; transition: all 0.2s; border-left: 5px solid #0052cc; text-decoration: none; color: inherit; box-sizing: border-box; }
+        .card-menu:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); background: #ffffff; border-color: #cbd5e1; }
+        .card-menu.admin { border-left-color: #10b981; }
+        .card-menu.portal { border-left-color: #0284c7; }
+        
+        .card-title { font-size: 17px; font-weight: 700; color: #1e293b; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .card-desc { font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; }
+        .tag { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: #e2e8f0; color: #475569; }
+        
+        .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; text-align: center; letter-spacing: 0.3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sistema de Crédito Diário</h2>
+    <p class="subtitle">Central de Gestão e Acesso aos Módulos da Operação</p>
+
+    <!-- Link 1: Simulador -->
+    <a href="emprestimo.html" class="card-menu">
+        <div class="card-title">
+            <span>📱 1. Simulador de Empréstimo</span>
+            <span class="tag">Cliente Final</span>
+        </div>
+        <p class="card-desc">Página de vitrine onde novos clientes simulam valores, prazos diários (1 a 30 dias) e formalizam a solicitação diretamente via WhatsApp com salvamento automático.</p>
+    </a>
+
+    <!-- Link 2: Portal do Cliente -->
+    <a href="portal.html" class="card-menu portal">
+        <div class="card-title">
+            <span>👤 2. Portal do Cliente</span>
+            <span class="tag" style="background: #e0f2fe; color: #0369a1;">Autonomia</span>
+        </div>
+        <p class="card-desc">Ambiente para o tomador consultar seus empréstimos ativos, acompanhar parcelas pagas e gerar o código Pix Copia e Cola (inclusive com pagamento em lote de várias parcelas).</p>
+    </a>
+
+    <!-- Link 3: Painel Administrativo -->
+    <a href="painel.html" class="card-menu admin">
+        <div class="card-title">
+            <span>🔒 3. Painel Administrativo</span>
+            <span class="tag" style="background: #d1fae5; color: #065f46;">Restrito (Gestor)</span>
+        </div>
+        <p class="card-desc">Centro de comando protegido por senha com KPIs em tempo real, filtros de pesquisa, listagem de parcelas, geração de Pix por parcela e controle de baixa manual de pagamentos.</p>
+    </a>
+
+</div>
+
+<div class="footer">Desenvolvido por EFK Solutions</div>
+
+</body>
+</html>
