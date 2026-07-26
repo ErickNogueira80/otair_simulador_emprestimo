@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Cliente - Consultar e Pagar</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 15px; color: #334155; display: flex; flex-direction: column; align-items: center; min-height: 95vh; box-sizing: border-box; }
+        .container { max-width: 600px; width: 100%; background: #ffffff; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); flex: 1; box-sizing: border-box; border-top: 5px solid #0052cc; }
+        
+        h2, p.subtitle { text-align: center; }
+        h2 { font-size: 22px; margin-top: 0; color: #1e293b; }
+        p.subtitle { font-size: 14px; color: #64748b; margin-bottom: 22px; }
+        
+        /* Área de Busca do Cliente */
+        .busca-section { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; text-align: center; }
+        label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; text-transform: uppercase; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; box-sizing: border-box; background-color: #fff; text-align: center; margin-bottom: 12px; }
+        input[type="text"]:focus { outline: none; border-color: #0052cc; box-shadow: 0 0 0 3px rgba(0,82,204,0.1); }
+        
+        .btn-consultar { background: linear-gradient(135deg, #0052cc 0%, #004099); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(0,82,204,0.3); transition: filter 0.2s; }
+        .btn-consultar:hover { filter: brightness(1.1); }
+
+        /* Cards de Resultados */
+        .emp-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); border-left: 4px solid #0052cc; }
+        .card-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .card-row span:first-child { color: #64748b; font-weight: 600; }
+        .card-row span:last-child { text-align: right; color: #1e293b; font-weight: 500; }
+
+        .parcela-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 10px; }
+        
+        .btn-pix { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; text-align: center; margin-top: 10px; font-size: 13px; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: filter 0.2s; }
+        .btn-pix:hover { filter: brightness(1.08); }
+        
+        .badge { background: #f59e0b; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-quitado { background: #10b981; color: white; }
+        
+        .loading { text-align: center; font-size: 15px; color: #64748b; padding: 20px; display: none; font-weight: 600; }
+        .footer { margin-top: 25px; font-size: 12px; color: #94a3b8; text-align: center; width: 100%; letter-spacing: 0.3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Portal do Cliente</h2>
+    <p class="subtitle">Consulte seus empréstimos e gere o Pix para pagamento.</p>
+
+    <div class="busca-section">
+        <label for="nomeCliente">Digite seu Nome Completo:</label>
+        <input type="text" id="nomeCliente" placeholder="Ex: João da Silva" onkeypress="if(event.key === 'Enter') buscarMeusEmprestimos()">
+        <button class="btn-consultar" onclick="buscarMeusEmprestimos()">Consultar Meus Empréstimos</button>
+    </div>
+
+    <div id="loading" class="loading">Buscando seus dados...</div>
+    <div id="resultadoBusca"></div>
+</div>
+
+<div class="footer">Desenvolvido por EFK Solutions</div>
+
+<script>
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
+    
+    const CHAVE_PIX = "14997476508"; 
+    const NOME_BENEFICIARIO = "Emprestimos MEI";
+    const CIDADE_BENEFICIARIO = "SAO PAULO";
+
+    function formatarData(dataStr) {
+        if (!dataStr) return "";
+        let apenasData = dataStr.split("T")[0];
+        let partes = apenasData.split("-");
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dataStr;
+    }
+
+    function formatarMoedaBR(valor) {
+        return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // Gerador de Pix Copia e Cola (Payload BR Code)
+    function gerarPayloadPix(chave, nome, cidade, valor, identificador) {
+        function formatoId(id, valorCampo) {
+            let tamanho = String(valorCampo.length).padStart(2, '0');
+            return id + tamanho + valorCampo;
+        }
+
+        let gui = formatoId('00', 'br.gov.bcb.pix');
+        let chavePixField = formatoId('01', chave);
+        let merchantAccount = formatoId('26', gui + chavePixField);
+        
+        let mcc = formatoId('52', '0000');
+        let moeda = formatoId('53', '986');
+        let valorStr = formatoId('54', Number(valor).toFixed(2));
+        let pais = formatoId('58', 'BR');
+        let beneficiario = formatoId('59', nome.substring(0, 25));
+        let cidadeBeneficiario = formatoId('60', cidade.substring(0, 15));
+        
+        let txId = identificador ? identificador.substring(0, 25) : '***';
+        let additionalData = formatoId('62', formatoId('05', txId));
+
+        let payloadSemCrc = formatoId('00', '01') + merchantAccount + mcc + moeda + valorStr + pais + beneficiario + cidadeBeneficiario + additionalData + '6304';
+        
+        let polinomio = 0x1021;
+        let resultado = 0xFFFF;
+        for (let i = 0; i < payloadSemCrc.length; i++) {
+            resultado ^= (payloadSemCrc.charCodeAt(i) << 8);
+            for (let j = 0; j < 8; j++) {
+                if ((resultado & 0x8000) !== 0) {
+                    resultado = ((resultado << 1) ^ polinomio) & 0xFFFF;
+                } else {
+                    resultado = (resultado << 1) & 0xFFFF;
+                }
+            }
+        }
+        let crc16 = resultado.toString(16).toUpperCase().padStart(4, '0');
+        return payloadSemCrc + crc16;
+    }
+
+    function copiarPixCopiaECola(chave, nome, cidade, valor, idParcela) {
+        let payload = gerarPayloadPix(chave, nome, cidade, valor, idParcela);
+        
+        navigator.clipboard.writeText(payload).then(() => {
+            alert("✅ Pix Copia e Cola copiado com sucesso!\n\nCole no aplicativo do seu banco para pagar.");
+        }).catch(err => {
+            prompt("Copie o código abaixo:", payload);
+        });
+    }
+
+    async function buscarMeusEmprestimos() {
+        let nomeBusca = document.getElementById('nomeCliente').value.trim().toLowerCase();
+        let divResultado = document.getElementById('resultadoBusca');
+        let loading = document.getElementById('loading');
+
+        if (!nomeBusca) {
+            alert("Por favor, digite seu nome completo para buscar.");
+            return;
+        }
+
+        divResultado.innerHTML = "";
+        loading.style.display = "block";
+
+        try {
+            let resposta = await fetch(URL_APPS_SCRIPT);
+            if (!resposta.ok) throw new Error("Erro ao carregar dados.");
+            let dados = await resposta.json();
+
+            loading.style.display = "none";
+
+            let emprestimos = dados.emprestimos || [];
+            let parcelas = dados.parcelas || [];
+
+            // Filtra os empréstimos do cliente (busca parcial ou exata pelo nome)
+            let meusEmprestimos = emprestimos.filter(e => e.nome.toLowerCase().includes(nomeBusca));
+
+            if (meusEmprestimos.length === 0) {
+                divResultado.innerHTML = "<p style='text-align:center; color:#64748b;'>Nenhum empréstimo encontrado para este nome. Verifique se digitou corretamente.</p>";
+                return;
+            }
+
+            let htmlFinal = "<h3>Seus Empréstimos</h3>";
+
+            meusEmprestimos.forEach(emp => {
+                let parcelasDoEmp = parcelas.filter(p => p.idEmprestimo === emp.id);
+                let todasQuitadas = parcelasDoEmp.length > 0 && parcelasDoEmp.every(p => p.status.toLowerCase() !== 'pendente');
+
+                let statusGeralBadge = todasQuitadas 
+                    ? '<span class="badge badge-quitado">Quitado</span>' 
+                    : '<span class="badge">Em Aberto</span>';
+
+                let htmlParcelas = "";
+                parcelasDoEmp.forEach(parc => {
+                    let pStatus = parc.status.toLowerCase();
+                    let badgeClass = pStatus === 'pendente' ? 'badge' : 'badge badge-quitado';
+                    let valorFormatado = formatarMoedaBR(parc.valor);
+                    let dataVencimentoFormatada = formatarData(parc.vencimento);
+                    let identificadorUnico = `${emp.id}_${parc.numeroParcela}`.replace(/[^a-zA-Z0-9]/g, '');
+
+                    let botaoPagamento = pStatus === 'pendente' 
+                        ? `<button class="btn-pix" onclick="copiarPixCopiaECola('${CHAVE_PIX}', '${NOME_BENEFICIARIO}', '${CIDADE_BENEFICIARIO}', ${parc.valor}, '${identificadorUnico}')">📋 Pagar via Pix (R$ ${parc.valor})</button>`
+                        : `<p style="text-align:center; color:#10b981; font-weight:bold; margin-top:8px;">✔ Parcela Paga</p>`;
+
+                    htmlParcelas += `
+                        <div class="parcela-item">
+                            <div class="card-row"><span>Dia/Parcela:</span> <strong>${parc.numeroParcela}</strong></div>
+                            <div class="card-row"><span>Vencimento:</span> <span>${dataVencimentoFormatada}</span></div>
+                            <div class="card-row"><span>Valor:</span> <strong style="color: #0052cc;">${valorFormatado}</strong></div>
+                            <div class="card-row"><span>Status:</span> <span class="${badgeClass}">${parc.status}</span></div>
+                            ${botaoPagamento}
+                        </div>
+                    `;
+                });
+
+                htmlFinal += `
+                    <div class="emp-card">
+                        <div class="card-row"><span>Data do Pedido:</span> <span>${formatarData(emp.data)}</span></div>
+                        <div class="card-row"><span>Valor Total:</span> <strong>${formatarMoedaBR(emp.valorTotal)}</strong></div>
+                        <div class="card-row"><span>Situação:</span> <span>${statusGeralBadge}</span></div>
+                        <div style="margin-top: 12px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                            <strong>Suas Parcelas:</strong>
+                            ${htmlParcelas}
+                        </div>
+                    </div>
+                `;
+            });
+
+            divResultado.innerHTML = htmlFinal;
+
+        } catch (erro) {
+            loading.style.display = "none";
+            divResultado.innerHTML = "<p style='text-align:center; color:red;'>Erro ao buscar dados. Tente novamente mais tarde.</p>";
+            console.error(erro);
+        }
+    }
+</script>
+
+</body>
+</html>
