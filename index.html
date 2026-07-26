@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Empréstimo</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .resultado { background: #eef2f7; padding: 15px; border-radius: 5px; margin-top: 20px; margin-bottom: 20px; }
+        .resultado p { margin: 8px 0; color: #333; }
+        button { width: 100%; background: #25d366; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #1ebe5d; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .loading { text-align: center; color: #666; font-size: 14px; display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Simulador de Empréstimo</h2>
+    
+    <div class="form-group">
+        <label for="nome">Seu Nome:</label>
+        <input type="text" id="nome" placeholder="Digite seu nome completo">
+    </div>
+
+    <div class="form-group">
+        <label for="valor">Valor Desejado (R$):</label>
+        <input type="number" id="valor" placeholder="Ex: 500" oninput="calcular()">
+    </div>
+
+    <div class="form-group">
+        <label for="parcelas">Quantidade de Parcelas:</label>
+        <select id="parcelas" onchange="calcular()">
+            <option value="1">1x (À vista)</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+            <option value="5">5x</option>
+            <option value="6">6x</option>
+            <option value="9">9x</option>
+            <option value="12">12x</option>
+        </select>
+    </div>
+
+    <div class="resultado">
+        <p><strong>Taxa de Juros:</strong> <span id="txtTaxa">10%</span> ao mês</p>
+        <p><strong>Valor da Parcela:</strong> <span id="txtParcela">R$ 0,00</span></p>
+        <p><strong>Total a Pagar:</strong> <span id="txtTotal">R$ 0,00</span></p>
+    </div>
+
+    <button id="btnSolicitar" onclick="solicitarEmprestimo()">Solicitar via WhatsApp</button>
+    <div id="loadingMsg" class="loading">Salvando pedido e abrindo WhatsApp...</div>
+</div>
+
+<script>
+    // COLE SUA URL DO APPS SCRIPT ABAIXO ENTRE AS ASPAS
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbx69l3Qd-KYv_EjYNW18n3iU36WIeUAqL-8LvtR86-0HrQC9RMerVkKkiPe1ygnoL29/exec";
+    
+    const TAXA_JUROS_MENSAL = 0.10; // Exemplo: 10% ao mês (Juros Simples ou Tabela Price simplificada)
+
+    function calcular() {
+        let valor = parseFloat(document.getElementById('valor').value) || 0;
+        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+
+        if (valor <= 0) {
+            document.getElementById('txtParcela').innerText = "R$ 0,00";
+            document.getElementById('txtTotal').innerText = "R$ 0,00";
+            return;
+        }
+
+        // Cálculo simples de juros (Valor + (Valor * Taxa * Meses))
+        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
+        let valorParcela = totalJuros / qtdParcelas;
+
+        document.getElementById('txtParcela').innerText = "R$ " + valorParcela.toFixed(2).replace('.', ',');
+        document.getElementById('txtTotal').innerText = "R$ " + totalJuros.toFixed(2).replace('.', ',');
+    }
+
+    async function solicitarEmprestimo() {
+        let nome = document.getElementById('nome').value.trim();
+        let valor = parseFloat(document.getElementById('valor').value) || 0;
+        let qtdParcelas = parseInt(document.getElementById('parcelas').value);
+
+        if (!nome) {
+            alert("Por favor, preencha o seu nome.");
+            return;
+        }
+        if (valor <= 0) {
+            alert("Por favor, informe um valor válido para o empréstimo.");
+            return;
+        }
+
+        let totalJuros = valor * (1 + (TAXA_JUROS_MENSAL * qtdParcelas));
+        let valorParcela = totalJuros / qtdParcelas;
+
+        let dadosEnvio = {
+            nomeCliente: nome,
+            valorEmprestado: valor,
+            taxaJuros: (TAXA_JUROS_MENSAL * 100) + "%",
+            qtdParcelas: qtdParcelas,
+            valorTotal: totalJuros.toFixed(2)
+        };
+
+        // Trava os botões e mostra carregamento
+        document.getElementById('btnSolicitar').disabled = true;
+        document.getElementById('loadingMsg').style.display = 'block';
+
+        try {
+            // Envia os dados para a planilha via Apps Script
+            await fetch(URL_APPS_SCRIPT, {
+                method: 'POST',
+                mode: 'no-cors', // Necessário para chamadas simples do Apps Script
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dadosEnvio)
+            });
+
+            // Prepara a mensagem para o WhatsApp (substitua o número abaixo pelo seu telefone com DDD, ex: 5511982778075)
+            let seuNumeroWhatsApp = "5511982778075"; 
+            let mensagem = `Olá! Meu nome é *${nome}*.\n\nAcabei de simular um empréstimo:\n` +
+                           `- Valor: R$ ${valor.toFixed(2)}\n` +
+                           `- Parcelas: ${qtdParcelas}x de R$ ${valorParcela.toFixed(2)}\n` +
+                           `- Total com juros: R$ ${totalJuros.toFixed(2)}\n\n` +
+                           `Gostaria de prosseguir com a solicitação!`;
+
+            let urlWhatsApp = `https://wa.me/${seuNumeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+
+            // Redireciona para o WhatsApp
+            window.location.href = urlWhatsApp;
+
+        } catch (erro) {
+            alert("Erro ao registrar o pedido, mas você ainda pode enviar pelo WhatsApp.");
+            console.error(erro);
+        } finally {
+            document.getElementById('btnSolicitar').disabled = false;
+            document.getElementById('loadingMsg').style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
