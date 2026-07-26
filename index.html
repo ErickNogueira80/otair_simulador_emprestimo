@@ -11,9 +11,8 @@
         h2 { text-align: center; color: #1e293b; font-size: 24px; margin-top: 0; margin-bottom: 8px; }
         p.subtitle { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 30px; }
         
-        .card-menu { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 18px; display: flex; flex-direction: column; transition: all 0.2s; border-left: 5px solid #0052cc; text-decoration: none; color: inherit; box-sizing: border-box; }
+        .card-menu { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 18px; display: flex; flex-direction: column; transition: all 0.2s; border-left: 5px solid #10b981; text-decoration: none; color: inherit; box-sizing: border-box; }
         .card-menu:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.06); background: #ffffff; border-color: #cbd5e1; }
-        .card-menu.admin { border-left-color: #10b981; }
         .card-menu.portal { border-left-color: #0284c7; }
         .card-menu.fluxo { border-left-color: #f59e0b; }
         
@@ -30,13 +29,13 @@
     <h2>Sistema de Crédito Diário</h2>
     <p class="subtitle">Central de Gestão e Acesso aos Módulos da Operação</p>
 
-    <!-- Link 1: Simulador -->
-    <a href="emprestimo.html" class="card-menu">
+    <!-- Link 1: Painel Administrativo -->
+    <a href="painel.html" class="card-menu">
         <div class="card-title">
-            <span>📱 1. Simulador de Empréstimo</span>
-            <span class="tag">Cliente Final</span>
+            <span>🔒 1. Painel Administrativo (Gestor)</span>
+            <span class="tag" style="background: #d1fae5; color: #065f46;">Restrito</span>
         </div>
-        <p class="card-desc">Página de vitrine onde novos clientes simulam valores, prazos diários (1 a 30 dias) e formalizam a solicitação diretamente via WhatsApp com salvamento automático.</p>
+        <p class="card-desc">Centro de comando onde o Otair cadastra novos empréstimos (com cálculo automático de 90% em 30 dias), gerencia recebimentos via Pix e dá baixa nas parcelas pagas.</p>
     </a>
 
     <!-- Link 2: Portal do Cliente -->
@@ -45,25 +44,16 @@
             <span>👤 2. Portal do Cliente</span>
             <span class="tag" style="background: #e0f2fe; color: #0369a1;">Autonomia</span>
         </div>
-        <p class="card-desc">Ambiente para o tomador consultar seus empréstimos ativos, acompanhar parcelas pagas e gerar o código Pix Copia e Cola (inclusive com pagamento em lote de várias parcelas).</p>
+        <p class="card-desc">Ambiente onde o tomador consulta seus empréstimos ativos informando o WhatsApp, acompanha as parcelas diárias e gera o código Pix Copia e Cola (inclusive em lote).</p>
     </a>
 
-    <!-- Link 3: Painel Administrativo -->
-    <a href="painel.html" class="card-menu admin">
-        <div class="card-title">
-            <span>🔒 3. Painel Administrativo</span>
-            <span class="tag" style="background: #d1fae5; color: #065f46;">Restrito (Gestor)</span>
-        </div>
-        <p class="card-desc">Centro de comando protegido por senha com KPIs em tempo real, filtros de pesquisa, listagem de parcelas, geração de Pix por parcela e controle de baixa manual de pagamentos.</p>
-    </a>
-
-    <!-- Link 4: Guia do Processo -->
+    <!-- Link 3: Guia do Processo -->
     <a href="fluxo.html" class="card-menu fluxo">
         <div class="card-title">
-            <span>📋 4. Guia do Processo (Fluxo)</span>
+            <span>📋 3. Guia do Processo (Fluxo)</span>
             <span class="tag" style="background: #fef3c7; color: #b45309;">Documentação</span>
         </div>
-        <p class="card-desc">Passo a passo detalhado de ponta a ponta da operação: desde a simulação do cliente até a análise do gestor, aprovação e controle de cobranças.</p>
+        <p class="card-desc">Passo a passo detalhado da operação: cadastro pelo Otair, envio do link no WhatsApp, regra de 90% em 30 parcelas diárias e pagamentos pelo portal.</p>
     </a>
 
 </div>
