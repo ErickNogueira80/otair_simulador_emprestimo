@@ -46,7 +46,7 @@
 
     <div class="busca-section">
         <label for="telefoneCliente">Digite seu WhatsApp (com DDD):</label>
-        <input type="text" id="telefoneCliente" placeholder="Ex: 11999999999" onkeypress="if(event.key === 'Enter') buscarMeusEmprestimos()">
+        <input type="text" id="telefoneCliente" placeholder="(11) 99999-9999" maxlength="15" oninput="mascaraTelefone(this)" onkeypress="if(event.key === 'Enter') buscarMeusEmprestimos()">
         <button class="btn-consultar" onclick="buscarMeusEmprestimos()">Consultar Meus Empréstimos</button>
     </div>
 
@@ -62,6 +62,20 @@
     const CHAVE_PIX = "14997476508"; 
     const NOME_BENEFICIARIO = "Emprestimos MEI";
     const CIDADE_BENEFICIARIO = "SAO PAULO";
+
+    // Máscara automática de telefone (XX) XXXXX-XXXX
+    function mascaraTelefone(input) {
+        let v = input.value.replace(/\D/g, "");
+        if (v.length > 11) v = v.substring(0, 11);
+        if (v.length > 6) {
+            v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
+        } else if (v.length > 2) {
+            v = v.replace(/^(\d{2})(\d+)/, "($1) $2");
+        } else if (v.length > 0) {
+            v = v.replace(/^(\d*)/, "($1");
+        }
+        input.value = v;
+    }
 
     function formatarData(dataStr) {
         if (!dataStr) return "";
@@ -155,7 +169,8 @@
     }
 
     async function buscarMeusEmprestimos() {
-        let telBusca = document.getElementById('telefoneCliente').value.trim().replace(/\D/g, '');
+        let telInput = document.getElementById('telefoneCliente').value.trim();
+        let telBusca = telInput.replace(/\D/g, '');
         let divResultado = document.getElementById('resultadoBusca');
         let loading = document.getElementById('loading');
 
@@ -177,7 +192,6 @@
             let emprestimos = dados.emprestimos || [];
             let parcelas = dados.parcelas || [];
 
-            // Filtra exato ou por parte do telefone cadastrado (removendo caracteres especiais)
             let meusEmprestimos = emprestimos.filter(e => {
                 let telCadastrado = e.telefone ? String(e.telefone).replace(/\D/g, '') : '';
                 return telCadastrado.includes(telBusca);
