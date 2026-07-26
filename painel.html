@@ -36,7 +36,7 @@
         .btn-cadastrar { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; margin-top: 10px; }
         .btn-cadastrar:hover { filter: brightness(1.08); }
 
-        /* Caixa de Sucesso Personalizada (Substitui os popups feios do navegador) */
+        /* Caixa de Sucesso Personalizada */
         #boxSucessoCadastro { display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: center; }
         #boxSucessoCadastro h4 { color: #065f46; margin: 0 0 5px 0; font-size: 15px; }
         #boxSucessoCadastro p { color: #047857; font-size: 13px; margin: 0 0 12px 0; }
@@ -110,7 +110,7 @@
                 <button class="btn-cadastrar" onclick="cadastrarNovoEmprestimo()">Cadastrar e Gerar 30 Parcelas (90% Juros)</button>
             </div>
 
-            <!-- Box de Sucesso Customizado (Substitui os popups do navegador) -->
+            <!-- Box de Sucesso Customizado -->
             <div id="boxSucessoCadastro">
                 <h4>✅ Empréstimo Cadastrado com Sucesso!</h4>
                 <p id="textoSucessoDetalhes">Escolha uma ação rápida abaixo:</p>
@@ -184,7 +184,7 @@
     const CIDADE_BENEFICIARIO = "SAO PAULO";
 
     let dadosGlobais = { emprestimos: [], parcelas: [] };
-    let ultimoClienteCadastrado = null; // Armazena dados do último cadastro para os botões rápidos
+    let ultimoClienteCadastrado = null;
 
     function validarSenha() {
         let senhaDigitada = document.getElementById('txtSenha').value;
@@ -293,14 +293,11 @@
             let resultado = await resposta.json();
 
             if (resultado.status === 'sucesso') {
-                // Guarda os dados para os botões rápidos
                 ultimoClienteCadastrado = { nome, telefone, chavePix, valor };
 
-                // Exibe o box de sucesso customizado na tela
                 document.getElementById('textoSucessoDetalhes').innerText = `Empréstimo de ${formatarMoedaBR(valor)} para ${nome} gerado com sucesso!`;
                 document.getElementById('boxSucessoCadastro').style.display = 'block';
                 
-                // Limpa os campos do formulário
                 document.getElementById('cadNome').value = "";
                 document.getElementById('cadTelefone').value = "";
                 document.getElementById('cadChavePix').value = "";
@@ -328,7 +325,7 @@
     function enviarWhatsAppUltimo() {
         if (!ultimoClienteCadastrado) return;
         let { nome, telefone, chavePix, valor } = ultimoClienteCadastrado;
-        let linkPortal = "https://ericknogueira80.github.io/otair_simulador_emprestimo/portal.html";
+        let linkPortal = "https://bit.ly/4bai05h"; // <--- Link encurtado do portal
         let msgWhatsApp = `Olá, *${nome}*! Seu empréstimo no valor de *${formatarMoedaBR(valor)}* foi aprovado e o Pix foi enviado para sua chave: \`${chavePix}\`.\n\n` +
                           `Você pode acompanhar suas 30 parcelas diárias e realizar pagamentos acessando o nosso Portal do Cliente:\n${linkPortal}\n\n` +
                           `Seu número de acesso cadastrado é: *${telefone}*.`;
@@ -393,7 +390,7 @@
         let parcelas = dadosGlobais.parcelas || [];
 
         let termoBusca = document.getElementById('filtroBusca') ? document.getElementById('filtroBusca').value.toLowerCase() : '';
-        let statusFiltro = document.getElementById('filtroStatus') ? document.getElementById('filtroStatus').value : 'todos';
+        let statusFiltro = document.getElementById('filtroStatus') ? document.getElementById('filtroStatus'].value : 'todos';
         let tipoOrdenacao = document.getElementById('ordenacao') ? document.getElementById('ordenacao').value : 'data-desc';
 
         if (termoBusca) {
@@ -416,7 +413,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
             return 0;
         });
 
