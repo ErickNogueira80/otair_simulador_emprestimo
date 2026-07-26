@@ -12,6 +12,13 @@
         h2 { font-size: 20px; margin-top: 0; color: #222; }
         p.subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
         
+        /* Tela de Login / Senha */
+        #telaLogin { text-align: center; padding: 40px 20px; }
+        #telaLogin input { width: 100%; max-width: 250px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; text-align: center; margin-bottom: 15px; box-sizing: border-box; }
+        #telaLogin button { background: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; display: block; margin: 0 auto; width: 100%; max-width: 250px; }
+        #telaLogin button:hover { background: #0056b3; }
+        .erro-senha { color: red; font-size: 13px; margin-top: 10px; display: none; }
+
         /* Indicadores (KPIs) */
         .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .kpi-card { background: #eef2f7; padding: 12px; border-radius: 8px; text-align: center; }
@@ -53,74 +60,99 @@
 
 <div class="container">
     <h2>Painel Administrativo</h2>
-    <p class="subtitle">Acompanhe o resumo da carteira e gerencie os empréstimos.</p>
+    <p class="subtitle">Acesso restrito ao gestor.</p>
 
-    <div id="loading" class="loading">Carregando dados da planilha...</div>
+    <!-- TELA DE LOGIN (PROTEÇÃO POR SENHA) -->
+    <div id="telaLogin">
+        <p>Digite a senha de acesso ao painel:</p>
+        <input type="password" id="txtSenha" placeholder="Senha" onkeypress="if(event.key === 'Enter') validarSenha()">
+        <button onclick="validarSenha()">Entrar</button>
+        <div id="msgErro" class="erro-senha">Senha incorreta. Tente novamente.</div>
+    </div>
 
-    <div id="conteudo" style="display: none;">
-        <!-- Bloco de Indicadores (KPIs) -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <span>Total de Empréstimos</span>
-                <strong id="kpiTotalEmp">0</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Clientes Únicos</span>
-                <strong id="kpiTotalClientes">0</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Valor Emprestado</span>
-                <strong id="kpiValorEmprestado">R$ 0,00</strong>
-            </div>
-            <div class="kpi-card">
-                <span>Em Aberto (Total)</span>
-                <strong id="kpiValorAberto">R$ 0,00</strong>
-            </div>
-        </div>
+    <!-- CONTEÚDO DO PAINEL (OCULTO ATÉ DIGITAR A SENHA CORRETA) -->
+    <div id="painelConteudo" style="display: none;">
+        <div id="loading" class="loading">Carregando dados da planilha...</div>
 
-        <h3>Lista de Empréstimos</h3>
-
-        <!-- Seção de Busca, Filtros e Ordenação -->
-        <div class="filter-section">
-            <div class="filter-group">
-                <label for="filtroBusca">Pesquisar Cliente:</label>
-                <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
-            </div>
-            <div class="filter-row" style="margin-top: 10px;">
-                <div class="filter-group">
-                    <label for="filtroStatus">Situação Empréstimo:</label>
-                    <select id="filtroStatus" onchange="renderizarPainel()">
-                        <option value="todos">Ambos (Todos)</option>
-                        <option value="aberto">Em Aberto</option>
-                        <option value="quitado">Quitados</option>
-                    </select>
+        <div id="conteudo" style="display: none;">
+            <!-- Bloco de Indicadores (KPIs) -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span>Total de Empréstimos</span>
+                    <strong id="kpiTotalEmp">0</strong>
                 </div>
-                <div class="filter-group">
-                    <label for="ordenacao">Ordenar por:</label>
-                    <select id="ordenacao" onchange="renderizarPainel()">
-                        <option value="data-desc">Mais Recentes</option>
-                        <option value="data-asc">Mais Antigos</option>
-                        <option value="nome">Cliente</option>
-                        <option value="valor-desc">Maior Valor</option>
-                    </select>
+                <div class="kpi-card">
+                    <span>Clientes Únicos</span>
+                    <strong id="kpiTotalClientes">0</strong>
+                </div>
+                <div class="kpi-card">
+                    <span>Valor Emprestado</span>
+                    <strong id="kpiValorEmprestado">R$ 0,00</strong>
+                </div>
+                <div class="kpi-card">
+                    <span>Em Aberto (Total)</span>
+                    <strong id="kpiValorAberto">R$ 0,00</strong>
                 </div>
             </div>
-        </div>
 
-        <p class="hint">Toque em um empréstimo para ver as parcelas e cobrar.</p>
-        <div id="listaEmprestimos"></div>
+            <h3>Lista de Empréstimos</h3>
+
+            <!-- Seção de Busca, Filtros e Ordenação -->
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label for="filtroBusca">Pesquisar Cliente:</label>
+                    <input type="text" id="filtroBusca" placeholder="Digite o nome..." oninput="renderizarPainel()">
+                </div>
+                <div class="filter-row" style="margin-top: 10px;">
+                    <div class="filter-group">
+                        <label for="filtroStatus">Situação Empréstimo:</label>
+                        <select id="filtroStatus" onchange="renderizarPainel()">
+                            <option value="todos">Ambos (Todos)</option>
+                            <option value="aberto">Em Aberto</option>
+                            <option value="quitado">Quitados</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="ordenacao">Ordenar por:</label>
+                        <select id="ordenacao" onchange="renderizarPainel()">
+                            <option value="data-desc">Mais Recentes</option>
+                            <option value="data-asc">Mais Antigos</option>
+                            <option value="nome">Cliente</option>
+                            <option value="valor-desc">Maior Valor</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <p class="hint">Toque em um empréstimo para ver as parcelas e cobrar.</p>
+            <div id="listaEmprestimos"></div>
+        </div>
     </div>
 </div>
 
 <div class="footer">Desenvolvido por EFK Solutions</div>
 
 <script>
+    // SENHA DE ACESSO DO PAINEL (Pode alterar aqui se quiser)
+    const SENHA_MESTRE = "1234";
+
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
-    
     const CHAVE_PIX = "seu_email_ou_telefone_aqui"; 
     const NOME_BENEFICIARIO = "Seu Nome / Empresa";
 
     let dadosGlobais = { emprestimos: [], parcelas: [] };
+
+    function validarSenha() {
+        let senhaDigitada = document.getElementById('txtSenha').value;
+        if (senhaDigitada === SENHA_MESTRE) {
+            document.getElementById('telaLogin').style.display = 'none';
+            document.getElementById('painelConteudo').style.display = 'block';
+            carregarPainel();
+        } else {
+            document.getElementById('msgErro').style.display = 'block';
+            document.getElementById('txtSenha').value = "";
+        }
+    }
 
     function formatarData(dataStr) {
         if (!dataStr) return "";
@@ -259,8 +291,6 @@
             divEmp.appendChild(card);
         });
     }
-
-    carregarPainel();
 </script>
 
 </body>
