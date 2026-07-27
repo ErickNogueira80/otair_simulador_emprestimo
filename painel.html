@@ -36,7 +36,7 @@
         .btn-cadastrar { background: linear-gradient(135deg, #10b981 0%, #059669); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: filter 0.2s; margin-top: 10px; }
         .btn-cadastrar:hover { filter: brightness(1.08); }
 
-        /* Caixa de Sucesso Personalizada */
+        /* Caixa de Sucesso Customizada */
         #boxSucessoCadastro { display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: center; }
         #boxSucessoCadastro h4 { color: #065f46; margin: 0 0 5px 0; font-size: 15px; }
         #boxSucessoCadastro p { color: #047857; font-size: 13px; margin: 0 0 12px 0; }
@@ -325,7 +325,7 @@
     function enviarWhatsAppUltimo() {
         if (!ultimoClienteCadastrado) return;
         let { nome, telefone, chavePix, valor } = ultimoClienteCadastrado;
-        let linkPortal = "https://bit.ly/4bai05h"; // <--- Link encurtado do portal
+        let linkPortal = "https://bit.ly/4bai05h"; 
         let msgWhatsApp = `Olá, *${nome}*! Seu empréstimo no valor de *${formatarMoedaBR(valor)}* foi aprovado e o Pix foi enviado para sua chave: \`${chavePix}\`.\n\n` +
                           `Você pode acompanhar suas 30 parcelas diárias e realizar pagamentos acessando o nosso Portal do Cliente:\n${linkPortal}\n\n` +
                           `Seu número de acesso cadastrado é: *${telefone}*.`;
@@ -377,10 +377,11 @@
             renderizarPainel();
 
         } catch (erro) {
-            let loadingEl = document.getElementById('loading');
-            if(loadingEl) {
-                loadingEl.innerHTML = `<b style="color: red;">Erro ao carregar dados:</b><br>${erro.message}`;
-            }
+            // Tratamento blindado: mesmo se a planilha falhar, o painel abre para o Otair não ficar trancado
+            if(document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+            if(document.getElementById('conteudo')) document.getElementById('conteudo').style.display = 'block';
+            let divEmp = document.getElementById('listaEmprestimos');
+            if(divEmp) divEmp.innerHTML = `<p style="text-align:center; color: red;">Aviso: Não foi possível carregar os dados da planilha (${erro.message}). Verifique a URL do Apps Script.</p>`;
             console.error(erro);
         }
     }
@@ -390,7 +391,7 @@
         let parcelas = dadosGlobais.parcelas || [];
 
         let termoBusca = document.getElementById('filtroBusca') ? document.getElementById('filtroBusca').value.toLowerCase() : '';
-        let statusFiltro = document.getElementById('filtroStatus') ? document.getElementById('filtroStatus'].value : 'todos';
+        let statusFiltro = document.getElementById('filtroStatus') ? document.getElementById('filtroStatus').value : 'todos';
         let tipoOrdenacao = document.getElementById('ordenacao') ? document.getElementById('ordenacao').value : 'data-desc';
 
         if (termoBusca) {
@@ -413,7 +414,7 @@
             if (tipoOrdenacao === 'data-desc') return new Date(b.data) - new Date(a.data);
             if (tipoOrdenacao === 'data-asc') return new Date(a.data) - new Date(b.data);
             if (tipoOrdenacao === 'nome') return a.nome.localeCompare(b.nome);
-            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(a.valorTotal);
+            if (tipoOrdenacao === 'valor-desc') return parseFloat(b.valorTotal) - parseFloat(b.valorTotal);
             return 0;
         });
 
@@ -422,7 +423,7 @@
         divEmp.innerHTML = "";
 
         if (emprestimos.length === 0) {
-            divEmp.innerHTML = "<p style='text-align:center;'>Nenhum empréstimo encontrado com esses filtros.</p>";
+            divEmp.innerHTML = "<p style='text-align:center;'>Nenhum empréstimo cadastrado.</p>";
             return;
         }
 
