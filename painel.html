@@ -179,7 +179,7 @@
     const SENHA_MESTRE = "1234";
     const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwsni3G8ZTrwqdelUG5UMOKsHRSzjfZF-tr3c8dHTGwjmuUt8TPHCXJaVm42syIZGda/exec";
     
-    const CHAVE_PIX = "14997476508"; 
+    const CHAVE_PIX = "14997476508"; // <--- WhatsApp / Chave Pix do Otair atualizado
     const NOME_BENEFICIARIO = "Emprestimos MEI";
     const CIDADE_BENEFICIARIO = "SAO PAULO";
 
@@ -377,7 +377,6 @@
             renderizarPainel();
 
         } catch (erro) {
-            // Tratamento blindado: mesmo se a planilha falhar, o painel abre para o Otair não ficar trancado
             if(document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
             if(document.getElementById('conteudo')) document.getElementById('conteudo').style.display = 'block';
             let divEmp = document.getElementById('listaEmprestimos');
